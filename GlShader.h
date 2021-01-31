@@ -41,7 +41,7 @@ public:
       fCode = fShadStream.str();
     }
     catch (std::ifstream:: failure e) {
-      std::cout << "SHADER ERROR: File failed to read" << std::endl;
+      printf("SHADER ERROR: File failed to read\n");
     }
     const char* vShadCode = vCode.c_str();
     const char* fShadCode = fCode.c_str();

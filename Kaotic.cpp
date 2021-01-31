@@ -4,16 +4,17 @@
 #include <iostream>
 #include <string>
 #include "GlShader.h"
-#include "texture.h"
 
 unsigned int vbo, array;
 
 //camera data
-float yaw   = -90.0f;
+float yaw   = 0.0f;
 float pitch =  0.0f;
 float lastX =  800.0f / 2.0;
 float lastY =  600.0 / 2.0;
 float height = 3.0f;
+
+glm::vec3 cameraPos = glm::vec3(0.f, 1.f, 0.f);
 
 bool firstMouse = true;
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -59,12 +60,9 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
       front.z = sin(glm::radians(yaw));
       movementFront = glm::normalize(front);
 
-      right.x = cos(glm::radians(yaw + 90.0f)) * cos(glm::radians(pitch));
-      right.y = sin(glm::radians(pitch));
-      right.z = sin(glm::radians(yaw + 90.0f)) * cos(glm::radians(pitch));
+      right = glm::cross(cameraFront, cameraUp);
       cameraRight = glm::normalize(right);
-      right.x = cos(glm::radians(yaw + 90.0f));
-      right.z = sin(glm::radians(yaw + 90.0f));
+      right.y = 0.0f;
       movementRight = glm::normalize(right);
 }
 
@@ -73,7 +71,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 }
 
 static void errormsg(int error, const char* msg) {
-    std::cout << "Error: " << msg << "\n";
+    printf("Error: %s\n", msg);
 }
 
 int main() {
@@ -91,11 +89,11 @@ int main() {
     glfwSetCursorPosCallback(game, mouse_callback);
 
     if (!game) {
-        std::cout << "ERROR: Window failed to initialize.\n";
+        printf("ERROR: Window failed to initialize.\n");
         glfwTerminate();
     }
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cout << "Failed to initialize GLAD\n";
+        printf("Failed to initialize GLAD\n");
         exit(1);
     }
 
@@ -112,8 +110,6 @@ int main() {
     glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
 
-    float deltaTime = 0.0f;
-    float delta = 0;
     float lastFrame = 0.0f;
     Shader mainShad = Shader((std::string*)"shaders/vertex.vshad", (std::string*)"shaders/frag.fshad");
     glfwSetErrorCallback(errormsg);
@@ -131,7 +127,6 @@ int main() {
     float z = 0.0f;
     float rx = 0.0f;
     glm::vec3 lPos = glm::vec3(0.f, 4.f, 3.f);
-    glm::vec3 cameraPos = glm::vec3(0.f, 1.f, 0.f);
     float firstFrame, deltaT;
     int bol = 0;
     float camSpeed = 10.f;
@@ -139,8 +134,6 @@ int main() {
     //game loop
     while (!glfwWindowShouldClose(game)) {
       double currentFrame = glfwGetTime();
-      deltaTime = currentFrame - lastFrame;
-      lastFrame = currentFrame;
       glClearColor(0.0, 1.0, 0.0, 1.0);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -151,23 +144,23 @@ int main() {
       }
       else
       {
-        delta = currentFrame - firstFrame;
+        deltaT = currentFrame - firstFrame;
       }
 
       deltaT = (currentFrame - lastFrame);
       lastFrame = currentFrame;
 
       if (glfwGetKey(game, GLFW_KEY_W) == GLFW_PRESS) {
-        cameraPos += camSpeed * deltaT * glm::vec3(movementFront.x, 0.0f, movementFront.z);
+        cameraPos -= camSpeed * (float)deltaT * glm::vec3(movementFront.x, 0.0f, movementFront.z);
       }
-      if (glfwGetKey(game, GLFW_KEY_S) == GLFW_PRESS) {
-        cameraPos -= camSpeed * deltaT * glm::vec3(movementFront.x, 0.0f, movementFront.z);
+      else if (glfwGetKey(game, GLFW_KEY_S) == GLFW_PRESS) {
+        cameraPos += camSpeed * (float)deltaT * glm::vec3(movementFront.x, 0.0f, movementFront.z);
       }
-      if (glfwGetKey(game, GLFW_KEY_A) == GLFW_PRESS) {
-        cameraPos -= camSpeed * deltaT * glm::vec3(movementRight.x, 0.0f, movementRight.z);
+      else if (glfwGetKey(game, GLFW_KEY_A) == GLFW_PRESS) {
+        cameraPos -= camSpeed * (float)deltaT * glm::vec3(movementRight.x, 0.0f, movementRight.z);
       }
-      if (glfwGetKey(game, GLFW_KEY_D) == GLFW_PRESS) {
-        cameraPos += camSpeed * deltaT * glm::vec3(movementRight.x, 0.0f, movementRight.z);
+      else if (glfwGetKey(game, GLFW_KEY_D) == GLFW_PRESS) {
+        cameraPos += camSpeed * (float)deltaT * glm::vec3(movementRight.x, 0.0f, movementRight.z);
       }
       if (glfwGetKey(game, GLFW_KEY_K) == GLFW_PRESS) {
           i--;
@@ -185,16 +178,14 @@ int main() {
           glfwSetWindowShouldClose(game, GL_TRUE);
       }
 
+      glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+
       lPos.x = 1.f - sin(glfwGetTime()) * 5.f;
       lPos.z = cos(glfwGetTime()) * 5.f;
 
       mainShad.useShad();
       mainShad.setVec3("lightPos", lPos);
       mainShad.setVec3("camPosition", cameraPos);
-
-      //mainShad.setFloat("camX", cameraPos.x);
-      //mainShad.setFloat("camY", cameraPos.y);
-      //mainShad.setFloat("camZ", cameraPos.z);
 
       mainShad.setFloat("maximum", i);
       mainShad.setFloat("mousex", yaw);

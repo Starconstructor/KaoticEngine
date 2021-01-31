@@ -78,11 +78,15 @@ float spherSDF (vec3 p, float radius)
   return length(p) - radius;
 }
 
+float floorDist (vec3 p) {
+  return p.y;
+}
+
 float sceneDistance(vec3 smol)
 {
   vec4 spher = vec4(-1, 1, 6, 1);
   float spherDist = spherSDF(smol - spher.xyz, spher.w);
-  float planDist = smol.y;
+  float planDist = floorDist(smol);
 
   vec3 cub = vec3(1, 1, 6);
   float cubDist = cubSDF(smol - cub);
@@ -105,7 +109,7 @@ float Raymarch(vec3 origin, vec3 rayDir)
     vec3 smallest = origin + rayDir * distance;
     float sceneDist = sceneDistance(smallest);
     distance += sceneDist;
-    if (distance > MAXDIST || distance < 0.01) break;
+    if (distance > MAXDIST || distance < 0.0001) break;
   }
   return distance;
 }
@@ -151,7 +155,7 @@ vec3 lighting(vec3 fragPos, vec3 rayOrigin) {
 
   vec3 lightDir = lPos - fragPos;
 
-  float shadowCast = Raymarch(fragPos + normie, lightDeg);
+  float shadowCast = Raymarch(fragPos + normie * 0.001, lightDeg);
   if (shadowCast < length(lightDir))
   {
     diff *= 0.1;
