@@ -197,7 +197,6 @@ void main() {
 
   raymarched /= 18.0f;
 
-  color = vec4(camPosition, 1.0);
   //color = vec4(normie, 1.0);
   color = vec4(final, 1.0);
 }

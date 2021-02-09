@@ -1,9 +1,9 @@
-CXX = g++
-CFLAGS = -lglfw -lGL -lX11 -lpthread -lXrandr -lXi -ldl -lportaudio -std=c++17
+CXX = gcc
+CFLAGS = -lglfw -lGL -lX11 -lpthread -lXrandr -lXi -ldl -lm -lportaudio
 DEPS = stb_image.h GlShader.h
 OBJ = Kaotic.o
 
-%.o: %.cpp $(DEPS)
+%.o: %.c $(DEPS)
 	$(CXX) -c -o $@ $< $(CFLAGS)
 
 Kaotic: $(OBJ)

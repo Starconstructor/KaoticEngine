@@ -1,8 +1,7 @@
 #define GLEW_STATIC
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <iostream>
-#include <string>
+#include <stdio.h>
 #include "GlShader.h"
 
 unsigned int vbo, array;
@@ -14,14 +13,14 @@ float lastX =  800.0f / 2.0;
 float lastY =  600.0 / 2.0;
 float height = 3.0f;
 
-glm::vec3 cameraPos = glm::vec3(0.f, 1.f, 0.f);
+struct vec3 cameraPos;
 
-bool firstMouse = true;
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 movementFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraRight = glm::vec3(-1.0f, 0.0f, 0.0f);
-glm::vec3 movementRight = glm::vec3(-1.0f, 0.0f, 0.0f);
-glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f, 0.0f);
+int firstMouse = 0;
+struct vec3 cameraFront;
+struct vec3 movementFront;
+struct vec3 cameraRight;
+struct vec3 movementRight;
+struct vec3 cameraUp;
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode) {
 }
@@ -30,7 +29,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
     if (firstMouse) {
         lastX = xpos;
         lastY = ypos;
-        firstMouse = false;
+        firstMouse = 1;
     }
 
     float xoffset = xpos - lastX;
@@ -50,20 +49,20 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
     if (pitch < -89.0f)
         pitch = -89.0f;
 
-      glm::vec3 front;
-      glm::vec3 right;
-      front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-      front.y = sin(glm::radians(pitch));
-      front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-      cameraFront = glm::normalize(front);
-      front.x = cos(glm::radians(yaw));
-      front.z = sin(glm::radians(yaw));
-      movementFront = glm::normalize(front);
+      struct vec3 front;
+      struct vec3 right;
+      front.x = cos(radians(yaw)) * cos(radians(pitch));
+      front.y = sin(radians(pitch));
+      front.z = sin(radians(yaw)) * cos(radians(pitch));
+      cameraFront = normalize(front);
+      front.x = cos(radians(yaw));
+      front.z = sin(radians(yaw));
+      movementFront = normalize(front);
 
-      right = glm::cross(cameraFront, cameraUp);
-      cameraRight = glm::normalize(right);
+      right = cross(cameraFront, cameraUp);
+      cameraRight = normalize(right);
       right.y = 0.0f;
-      movementRight = glm::normalize(right);
+      movementRight = normalize(right);
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
@@ -75,6 +74,15 @@ static void errormsg(int error, const char* msg) {
 }
 
 int main() {
+
+  cameraPos = vec3(0.f, 1.f, 0.f);
+
+  cameraFront = vec3(0.0f, 0.0f, -1.0f);
+  movementFront = vec3(0.0f, 0.0f, -1.0f);
+  cameraRight = vec3(-1.0f, 0.0f, 0.0f);
+  movementRight = vec3(-1.0f, 0.0f, 0.0f);
+  cameraUp = vec3(0.0f, 1.0f, 0.0f);
+
     glfwInit();
     //sets up window//camera data
     GLFWwindow* game;
@@ -111,7 +119,7 @@ int main() {
     glEnable(GL_DEPTH_TEST);
 
     float lastFrame = 0.0f;
-    Shader mainShad = Shader("shaders/vertex.vshad", "shaders/frag.fshad");
+    Shader("shaders/vertex.vshad", "shaders/frag.fshad");
     glfwSetErrorCallback(errormsg);
 
     glGenVertexArrays(1, &array);
@@ -126,11 +134,10 @@ int main() {
     float x = 0.0f;
     float z = 0.0f;
     float rx = 0.0f;
-    glm::vec3 lPos = glm::vec3(0.f, 4.f, 3.f);
+    struct vec3 lPos = vec3(0.f, 4.f, 3.f);
     float firstFrame, deltaT;
     int bol = 0;
     float camSpeed = 10.f;
-    glm::mat4 view = glm::mat4(1.0f);
 
     //game loop
     while (!glfwWindowShouldClose(game)) {
@@ -152,16 +159,16 @@ int main() {
       lastFrame = currentFrame;
 
       if (glfwGetKey(game, GLFW_KEY_W) == GLFW_PRESS) {
-        cameraPos -= camSpeed * (float)deltaT * glm::vec3(movementFront.x, 0.0f, movementFront.z);
+        sub(cameraPos, mult(camSpeed * (float)deltaT, vec3(movementFront.x, 0.0f, movementFront.z)));
       }
       else if (glfwGetKey(game, GLFW_KEY_S) == GLFW_PRESS) {
-        cameraPos += camSpeed * (float)deltaT * glm::vec3(movementFront.x, 0.0f, movementFront.z);
+        ad(cameraPos, mult(camSpeed * (float)deltaT, vec3(movementFront.x, 0.0f, movementFront.z)));
       }
       else if (glfwGetKey(game, GLFW_KEY_A) == GLFW_PRESS) {
-        cameraPos -= camSpeed * (float)deltaT * glm::vec3(movementRight.x, 0.0f, movementRight.z);
+        sub(cameraPos, mult(camSpeed * (float)deltaT, vec3(movementRight.x, 0.0f, movementRight.z)));
       }
       else if (glfwGetKey(game, GLFW_KEY_D) == GLFW_PRESS) {
-        cameraPos += camSpeed * (float)deltaT * glm::vec3(movementRight.x, 0.0f, movementRight.z);
+        ad(cameraPos, mult(camSpeed * (float)deltaT, vec3(movementRight.x, 0.0f, movementRight.z)));
       }
       if (glfwGetKey(game, GLFW_KEY_K) == GLFW_PRESS) {
           i--;
@@ -179,23 +186,20 @@ int main() {
           glfwSetWindowShouldClose(game, GL_TRUE);
       }
 
-      view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-
       lPos.x = 1.f - sin(glfwGetTime()) * 5.f;
       lPos.z = cos(glfwGetTime()) * 5.f;
 
-      mainShad.useShad();
-      mainShad.setVec3("lightPos", lPos);
-      mainShad.setVec3("camPosition", cameraPos);
+      setVec3("lightPos", lPos);
+      setVec3("camPosition", cameraPos);
 
-      mainShad.setFloat("maximum", i);
-      mainShad.setFloat("mousex", yaw);
-      mainShad.setFloat("mousey", -pitch);
-      mainShad.setFloat("rx", rx);
+      setFloat("maximum", i);
+      setFloat("mousex", yaw);
+      setFloat("mousey", -pitch);
+      setFloat("rx", rx);
 
-      mainShad.setFloat("iResolution.x", mode->width);
-      mainShad.setFloat("iResolution.y", mode->height);
-      mainShad.setVec3("Color", glm::vec3(1.f, 1.f, 1.f));
+      setFloat("iResolution.x", mode->width);
+      setFloat("iResolution.y", mode->height);
+      setVec3("Color", vec3(1.f, 1.f, 1.f));
       glBindVertexArray(array);
       glDrawArrays(GL_TRIANGLES, 0, 3);
 

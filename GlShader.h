@@ -2,18 +2,34 @@
 #define SHADER_H
 
 #include <glad/glad.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+#include "mat.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-
-class Shader {
-public:
   unsigned int ID;
 
-  Shader(const char* vPath, const char* fPath) {
+  void checkCompileErrors(unsigned int shader, const char* type)
+  {
+    int success;
+    char infoLog[1024];
+    if (type != "PROGRAM") {
+      glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+      if (!success) {
+        glGetShaderInfoLog(shader, 1024, NULL, infoLog);
+        printf("ERROR:SHADER_COMPILATION_ERROR of type: %s\n%s\n---------------------------------------------------\n", type, infoLog);
+      }
+    }
+    else {
+      glGetProgramiv(shader, GL_LINK_STATUS, &success);
+      if (!success) {
+        glGetProgramInfoLog(shader, 1024, NULL, infoLog);
+        printf("ERROR:SHADER_COMPILATION_ERROR of type: %s\n%s\n---------------------------------------------------\n", type, infoLog);
+      }
+    }
+  }
+
+  void Shader(const char* vPath, const char* fPath) {
     //finding shaders and converting the code
     FILE *vShad;
     FILE *fShad;
@@ -64,56 +80,20 @@ public:
     glDeleteShader(frag);
     free(vShadCode);
     free(fShadCode);
-  }
-  Shader() {
-  }
-
-  void useShad() {
     glUseProgram(ID);
   }
 
-  void setBool(const char* name, bool value) const {
-  glUniform1i(glGetUniformLocation(ID, name), (int)value);
-  }
-  void setInt(const char* name, int value) const {
+  void setInt(const char* name, int value) {
     glUniform1i(glGetUniformLocation(ID, name), value);
   }
-  void setFloat(const char* name, float value) const {
+  void setFloat(const char* name, float value) {
     glUniform1f(glGetUniformLocation(ID, name), value);
   }
-  void setMat4(const char* name, glm::mat4 gorg) {
+  /*void setMat4(const char* name, glm::mat4 gorg) {
     glUniformMatrix4fv(glGetUniformLocation(ID, name), 1, GL_FALSE, glm::value_ptr(gorg));
   }
-  void setVec3(const char* name, float val1, float val2, float val3) {
-    glUniform3f(glGetUniformLocation(ID, name), val1, val2, val3);
+  */
+  void setVec3(const char* name, struct vec3 value) {
+    glUniform3f(glGetUniformLocation(ID, name), value.x, value.y, value.z);
   }
-  void setiVec3(const char* name, int val1, int val2, int val3) {
-    glUniform3i(glGetUniformLocation(ID, name), val1, val2, val3);
-  }
-  void setiVec3(const char* name, const glm::ivec3 &value) const {
-    glUniform3iv(glGetUniformLocation(ID, name), 1, &value[0]);
-  }
-  void setVec3(const char* name, const glm::vec3 &value) const {
-    glUniform3fv(glGetUniformLocation(ID, name), 1, &value[0]);
-  }
-private:
-  void checkCompileErrors(unsigned int shader, const char* type) {
-    int success;
-    char infoLog[1024];
-    if (type != "PROGRAM") {
-      glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-      if (!success) {
-        glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-        std::cout << "ERROR:SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n---------------------------------------------------" << std::endl;
-      }
-    }
-    else {
-      glGetProgramiv(shader, GL_LINK_STATUS, &success);
-      if (!success) {
-        glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-        std::cout << "ERROR:PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n---------------------------------------------------" << std::endl;
-      }
-    }
-  }
-};
 #endif
