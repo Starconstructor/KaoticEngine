@@ -63,9 +63,8 @@ float bunny(vec3 p) {
         mat4(-.10,.52,.80,-.65,.40,-.75,.47,1.56,.03,.05,.08,.31,-.03,.22,-1.63,.07)*f12+
         mat4(-.18,-.07,-1.22,.48,-.01,.56,.07,.15,.24,.25,-.09,-.54,.23,-.08,.20,.36)*f13+
         vec4(-1.11,-4.28,1.02,-.23))/1.4+f13;
-    float o = dot(f00,vec4(.09,.12,-.07,-.03))+dot(f01,vec4(-.04,.07,-.08,.05))+
+    return dot(f00,vec4(.09,.12,-.07,-.03))+dot(f01,vec4(-.04,.07,-.08,.05))+
         dot(f02,vec4(-.01,.06,-.02,.07))+dot(f03,vec4(-.05,.07,.03,.04))-0.16;
-    return o*0.85; //its a nonperfect sdf
 }
 
 float cubSDF (vec3 pos)
@@ -91,7 +90,7 @@ float sceneDistance(vec3 smol)
   vec3 cub = vec3(1, 1, 6);
   float cubDist = cubSDF(smol - cub);
 
-  vec3 bun = vec3(-3, 1, 6);
+  vec3 bun = vec3(-3, 0.55, 6);
   float bunDist = bunny((smol - bun).xzy);
 
   float ultrasmol;

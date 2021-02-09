@@ -111,7 +111,7 @@ int main() {
     glEnable(GL_DEPTH_TEST);
 
     float lastFrame = 0.0f;
-    Shader mainShad = Shader((std::string*)"shaders/vertex.vshad", (std::string*)"shaders/frag.fshad");
+    Shader mainShad = Shader("shaders/vertex.vshad", "shaders/frag.fshad");
     glfwSetErrorCallback(errormsg);
 
     glGenVertexArrays(1, &array);
@@ -130,6 +130,7 @@ int main() {
     float firstFrame, deltaT;
     int bol = 0;
     float camSpeed = 10.f;
+    glm::mat4 view = glm::mat4(1.0f);
 
     //game loop
     while (!glfwWindowShouldClose(game)) {
@@ -178,7 +179,7 @@ int main() {
           glfwSetWindowShouldClose(game, GL_TRUE);
       }
 
-      glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+      view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
       lPos.x = 1.f - sin(glfwGetTime()) * 5.f;
       lPos.z = cos(glfwGetTime()) * 5.f;
