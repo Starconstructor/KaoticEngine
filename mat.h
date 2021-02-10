@@ -26,6 +26,12 @@ float radians(float deg)
   return rad;
 }
 
+float degrees(float rad)
+{
+  float pi = 3.14159f;
+  float deg = rad * 180 / pi;
+}
+
 struct vec3 normalize(struct vec3 bigAss)
 {
   float length = sqrt((bigAss.x * bigAss.x) + (bigAss.y * bigAss.y) + (bigAss.z * bigAss.z));

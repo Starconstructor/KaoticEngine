@@ -51,17 +51,13 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 
       struct vec3 front;
       struct vec3 right;
-      front.x = cos(radians(yaw)) * cos(radians(pitch));
-      front.y = sin(radians(pitch));
-      front.z = sin(radians(yaw)) * cos(radians(pitch));
-      cameraFront = normalize(front);
-      front.x = cos(radians(yaw));
-      front.z = sin(radians(yaw));
+      front.x = sin(yaw);
+      front.y = 1.0f;
+      front.z = cos(yaw);
       movementFront = normalize(front);
 
-      right = cross(cameraFront, cameraUp);
-      cameraRight = normalize(right);
-      right.y = 0.0f;
+      right = cross(movementFront, cameraUp);
+      right.y = 1.0f;
       movementRight = normalize(right);
 }
 
@@ -77,17 +73,15 @@ int main() {
 
   cameraPos = vec3(0.f, 1.f, 0.f);
 
-  cameraFront = vec3(0.0f, 0.0f, -1.0f);
   movementFront = vec3(0.0f, 0.0f, -1.0f);
-  cameraRight = vec3(-1.0f, 0.0f, 0.0f);
   movementRight = vec3(-1.0f, 0.0f, 0.0f);
   cameraUp = vec3(0.0f, 1.0f, 0.0f);
 
     glfwInit();
     //sets up window//camera data
     GLFWwindow* game;
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
     glfwWindowHint(GLFW_SAMPLES, 16);
@@ -159,16 +153,16 @@ int main() {
       lastFrame = currentFrame;
 
       if (glfwGetKey(game, GLFW_KEY_W) == GLFW_PRESS) {
-        sub(cameraPos, mult(camSpeed * (float)deltaT, vec3(movementFront.x, 0.0f, movementFront.z)));
+        cameraPos = ad(cameraPos, mult(camSpeed * (float)deltaT, vec3(movementFront.x, 0.0f, movementFront.z)));
       }
-      else if (glfwGetKey(game, GLFW_KEY_S) == GLFW_PRESS) {
-        ad(cameraPos, mult(camSpeed * (float)deltaT, vec3(movementFront.x, 0.0f, movementFront.z)));
+      if (glfwGetKey(game, GLFW_KEY_S) == GLFW_PRESS) {
+        cameraPos = sub(cameraPos, mult(camSpeed * (float)deltaT, vec3(movementFront.x, 0.0f, movementFront.z)));
       }
-      else if (glfwGetKey(game, GLFW_KEY_A) == GLFW_PRESS) {
-        sub(cameraPos, mult(camSpeed * (float)deltaT, vec3(movementRight.x, 0.0f, movementRight.z)));
+      if (glfwGetKey(game, GLFW_KEY_A) == GLFW_PRESS) {
+        cameraPos = ad(cameraPos, mult(camSpeed * (float)deltaT, vec3(movementRight.x, 0.0f, movementRight.z)));
       }
-      else if (glfwGetKey(game, GLFW_KEY_D) == GLFW_PRESS) {
-        ad(cameraPos, mult(camSpeed * (float)deltaT, vec3(movementRight.x, 0.0f, movementRight.z)));
+      if (glfwGetKey(game, GLFW_KEY_D) == GLFW_PRESS) {
+        cameraPos = sub(cameraPos, mult(camSpeed * (float)deltaT, vec3(movementRight.x, 0.0f, movementRight.z)));
       }
       if (glfwGetKey(game, GLFW_KEY_K) == GLFW_PRESS) {
           i--;
