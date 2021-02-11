@@ -22,6 +22,11 @@ struct vec3 cameraRight;
 struct vec3 movementRight;
 struct vec3 cameraUp;
 
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    glViewport(0, 0, width, height);
+}
+
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
     if (firstMouse) {
         lastX = xpos;
@@ -93,7 +98,6 @@ int main() {
     }
 
     glfwSetFramebufferSizeCallback(game, framebuffer_size_callback);
-    glfwSetKeyCallback(game, key_callback);
     float gameWindow[] =
     {
       -4.0f, -2.0f,
