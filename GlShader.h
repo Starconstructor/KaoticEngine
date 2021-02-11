@@ -58,6 +58,9 @@
     unsigned int vertex, frag;
     int yeet;
 
+    vShadCode[vLen] = 0;
+    fShadCode[fLen] = 0;
+
     vertex = glCreateShader(GL_VERTEX_SHADER);
     const char* vCode = vShadCode;
     glShaderSource(vertex, 1, &vCode, NULL);

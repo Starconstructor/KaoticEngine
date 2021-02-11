@@ -80,6 +80,18 @@ int main() {
         SDL_Quit();
         exit(1);
     }
+    if (!glcontext)
+    {
+      printf("ERROR: Window context failed to initialize.\n");
+      SDL_Quit();
+      exit(1);
+    }
+    if (!gladLoadGLLoader(SDL_GL_GetProcAddress))
+    {
+      printf("ERROR: GLAD failed to load.\n");
+      SDL_Quit();
+      exit(1);
+    }
 
     float gameWindow[] =
     {
@@ -114,7 +126,7 @@ int main() {
     int play = 1;
 
     //game loop
-    while (!play) {
+    while (play != 0) {
       double currentFrame = SDL_GetTicks();
       glClearColor(0.0, 1.0, 0.0, 1.0);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
