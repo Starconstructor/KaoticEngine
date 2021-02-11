@@ -27,7 +27,8 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
     if (firstMouse) {
         lastX = xpos;
         lastY = ypos;
@@ -63,12 +64,13 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
       movementRight = normalize(right);
 }
 
-static void errormsg(int error, const char* msg) {
+static void errormsg(int error, const char* msg)
+{
     printf("Error: %s\n", msg);
 }
 
-int main() {
-
+int main()
+{
   cameraPos = vec3(0.f, 1.f, 0.f);
 
   movementFront = vec3(0.0f, 0.0f, -1.0f);
@@ -88,11 +90,13 @@ int main() {
     glfwSetInputMode(game, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(game, mouse_callback);
 
-    if (!game) {
+    if (!game)
+    {
         printf("ERROR: Window failed to initialize.\n");
         glfwTerminate();
     }
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
         printf("Failed to initialize GLAD\n");
         exit(1);
     }
@@ -131,7 +135,8 @@ int main() {
     float camSpeed = 10.f;
 
     //game loop
-    while (!glfwWindowShouldClose(game)) {
+    while (!glfwWindowShouldClose(game))
+    {
       double currentFrame = glfwGetTime();
       glClearColor(1.0, 0.0, 0.0, 1.0);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
