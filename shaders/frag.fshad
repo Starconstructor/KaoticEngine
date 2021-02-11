@@ -103,7 +103,7 @@ float sceneDistance(vec3 smol)
 float Raymarch(vec3 origin, vec3 rayDir)
 {
   float distance = 0.0001;
-  for (int i = 0; i < rx; i++)
+  for (int i = 0; i < maximum; i++)
   {
     vec3 smallest = origin + rayDir * distance;
     float sceneDist = sceneDistance(smallest);

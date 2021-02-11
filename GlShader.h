@@ -18,7 +18,7 @@
       if (!success) {
         glGetShaderInfoLog(shader, 1024, NULL, infoLog);
         printf("ERROR:SHADER_COMPILATION_ERROR of type: %s\n%s\n---------------------------------------------------\n", type, infoLog);
-        exit(1);
+        //exit(1);
       }
     }
     else {
@@ -26,7 +26,7 @@
       if (!success) {
         glGetProgramInfoLog(shader, 1024, NULL, infoLog);
         printf("ERROR:SHADER_COMPILATION_ERROR of type: %s\n%s\n---------------------------------------------------\n", type, infoLog);
-        exit(1);
+        //exit(1);
       }
     }
   }
@@ -46,8 +46,8 @@
     fseek(vShad, 0, SEEK_SET);
     fseek(fShad, 0, SEEK_SET);
 
-    char* vShadCode = (char*)malloc(vLen + 1);
-    char* fShadCode = (char*)malloc(fLen + 1);
+    char* vShadCode = (char*)malloc(vLen);
+    char* fShadCode = (char*)malloc(fLen);
 
     fread(vShadCode, 1, vLen, vShad);
     fread(fShadCode, 1, fLen, fShad);
@@ -57,6 +57,9 @@
     //compiling shaders
     unsigned int vertex, frag;
     int yeet;
+
+    vShadCode[vLen] = 0;
+    fShadCode[fLen] = 0;
 
     vertex = glCreateShader(GL_VERTEX_SHADER);
     const char* vCode = vShadCode;
@@ -85,7 +88,7 @@
     glUseProgram(ID);
   }
 
-  /*void cShader() {
+  void cShader() {
     int tex_w = 512, tex_h = 512;
     GLuint tex_output;
     glGenTextures(1, &tex_output);
@@ -99,15 +102,18 @@
      NULL);
     glBindImageTexture(0, tex_output, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
-    int work_grp_cnt[3];
+    int workCount[3];
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &workCount[0]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &workCount[1]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &workCount[2]);
+    printf("max global (total) work group counts x:%i y:%i z:%i\n", workCount[0], workCount[1], workCount[2]);
 
-    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &work_grp_cnt[0]);
-    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &work_grp_cnt[1]);
-    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &work_grp_cnt[2]);
-
-    printf("max global (total) work group counts x:%i y:%i z:%i\n", work_grp_cnt[0], work_grp_cnt[1], work_grp_cnt[2]);
-
-  }*/
+    int workSize[3];
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &workSize[0]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &workSize[1]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &workSize[2]);
+    printf("max local (in one shader) work group sizes x:%i y:%i z:%i\n", workSize[0], workSize[1], workSize[2]);
+  }
 
   void setInt(const char* name, int value) {
     glUniform1i(glGetUniformLocation(ID, name), value);

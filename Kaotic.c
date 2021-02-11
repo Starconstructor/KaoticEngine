@@ -22,9 +22,6 @@ struct vec3 cameraRight;
 struct vec3 movementRight;
 struct vec3 cameraUp;
 
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode) {
-}
-
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
     if (firstMouse) {
         lastX = xpos;
@@ -59,10 +56,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
       right = cross(movementFront, cameraUp);
       right.y = 1.0f;
       movementRight = normalize(right);
-}
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-    glViewport(0, 0, width, height);
 }
 
 static void errormsg(int error, const char* msg) {
@@ -136,7 +129,7 @@ int main() {
     //game loop
     while (!glfwWindowShouldClose(game)) {
       double currentFrame = glfwGetTime();
-      glClearColor(0.0, 1.0, 0.0, 1.0);
+      glClearColor(1.0, 0.0, 0.0, 1.0);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
       if (bol = 0)
