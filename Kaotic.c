@@ -1,6 +1,6 @@
 #define GLEW_STATIC
 #include <glad/glad.h>
-#include <GLFW/glfw3.h>
+#include <SDL2/SDL.h>
 #include <stdio.h>
 #include "GlShader.h"
 
@@ -22,20 +22,9 @@ struct vec3 cameraRight;
 struct vec3 movementRight;
 struct vec3 cameraUp;
 
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode) {
-}
-
-void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
-    if (firstMouse) {
-        lastX = xpos;
-        lastY = ypos;
-        firstMouse = 1;
-    }
-
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos;
-    lastX = xpos;
-    lastY = ypos;
+void mouse(double xpos, double ypos) {
+    float xoffset = xpos;
+    float yoffset = ypos;
 
     float sensitivity = 0.001f;
     xoffset *= sensitivity;
@@ -61,10 +50,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
       movementRight = normalize(right);
 }
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-    glViewport(0, 0, width, height);
-}
-
 static void errormsg(int error, const char* msg) {
     printf("Error: %s\n", msg);
 }
@@ -77,30 +62,25 @@ int main() {
   movementRight = vec3(-1.0f, 0.0f, 0.0f);
   cameraUp = vec3(0.0f, 1.0f, 0.0f);
 
-    glfwInit();
+    SDL_Init(SDL_INIT_EVERYTHING);
     //sets up window//camera data
-    GLFWwindow* game;
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-    glfwWindowHint(GLFW_SAMPLES, 16);
-    game = glfwCreateWindow(mode->width, mode->height, "Kaotic", glfwGetPrimaryMonitor(), NULL);
-    glfwMakeContextCurrent(game);
-    glfwSetInputMode(game, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glfwSetCursorPosCallback(game, mouse_callback);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_DisplayMode mode;
+    SDL_GetDesktopDisplayMode(0, &mode);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16);
+    SDL_Window* game = SDL_CreateWindow("Kaotic", 0, 0, mode.w, mode.h, SDL_WINDOW_INPUT_GRABBED|SDL_WINDOW_FULLSCREEN|SDL_WINDOW_OPENGL);
+    SDL_GLContext glcontext = SDL_GL_CreateContext(game);
+    SDL_ShowCursor(SDL_DISABLE);
 
     if (!game) {
         printf("ERROR: Window failed to initialize.\n");
-        glfwTerminate();
-    }
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        printf("Failed to initialize GLAD\n");
+        SDL_Quit();
         exit(1);
     }
 
-    glfwSetFramebufferSizeCallback(game, framebuffer_size_callback);
-    glfwSetKeyCallback(game, key_callback);
     float gameWindow[] =
     {
       -4.0f, -2.0f,
@@ -114,7 +94,6 @@ int main() {
 
     float lastFrame = 0.0f;
     Shader("shaders/vertex.vshad", "shaders/frag.fshad");
-    glfwSetErrorCallback(errormsg);
 
     glGenVertexArrays(1, &array);
     glGenBuffers(1, &vbo);
@@ -132,17 +111,18 @@ int main() {
     float firstFrame, deltaT;
     int bol = 0;
     float camSpeed = 10.f;
+    int play = 1;
 
     //game loop
-    while (!glfwWindowShouldClose(game)) {
-      double currentFrame = glfwGetTime();
+    while (!play) {
+      double currentFrame = SDL_GetTicks();
       glClearColor(0.0, 1.0, 0.0, 1.0);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
       if (bol = 0)
       {
         bol = 1;
-        firstFrame = glfwGetTime();
+        firstFrame = SDL_GetTicks();
       }
       else
       {
@@ -152,36 +132,56 @@ int main() {
       deltaT = (currentFrame - lastFrame);
       lastFrame = currentFrame;
 
-      if (glfwGetKey(game, GLFW_KEY_W) == GLFW_PRESS) {
-        cameraPos = ad(cameraPos, mult(camSpeed * (float)deltaT, vec3(movementFront.x, 0.0f, movementFront.z)));
-      }
-      if (glfwGetKey(game, GLFW_KEY_S) == GLFW_PRESS) {
-        cameraPos = sub(cameraPos, mult(camSpeed * (float)deltaT, vec3(movementFront.x, 0.0f, movementFront.z)));
-      }
-      if (glfwGetKey(game, GLFW_KEY_A) == GLFW_PRESS) {
-        cameraPos = ad(cameraPos, mult(camSpeed * (float)deltaT, vec3(movementRight.x, 0.0f, movementRight.z)));
-      }
-      if (glfwGetKey(game, GLFW_KEY_D) == GLFW_PRESS) {
-        cameraPos = sub(cameraPos, mult(camSpeed * (float)deltaT, vec3(movementRight.x, 0.0f, movementRight.z)));
-      }
-      if (glfwGetKey(game, GLFW_KEY_K) == GLFW_PRESS) {
-          i--;
-      }
-      if (glfwGetKey(game, GLFW_KEY_L) == GLFW_PRESS) {
-          i++;
-      }
-      if (glfwGetKey(game, GLFW_KEY_LEFT) == GLFW_PRESS) {
-          rx-= 0.01;
-      }
-      if (glfwGetKey(game, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-          rx+= 0.01;
-      }
-      if (glfwGetKey(game, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-          glfwSetWindowShouldClose(game, GL_TRUE);
+
+      SDL_Event ev;
+      if (SDL_PollEvent(&ev))
+      {
+        if (ev.type == SDL_KEYDOWN)
+        {
+          if (ev.key.keysym.sym == SDLK_w) {
+            cameraPos = ad(cameraPos, mult(camSpeed * (float)deltaT, vec3(movementFront.x, 0.0f, movementFront.z)));
+          }
+          if (ev.key.keysym.sym == SDLK_s) {
+            cameraPos = sub(cameraPos, mult(camSpeed * (float)deltaT, vec3(movementFront.x, 0.0f, movementFront.z)));
+          }
+          if (ev.key.keysym.sym == SDLK_a) {
+            cameraPos = ad(cameraPos, mult(camSpeed * (float)deltaT, vec3(movementRight.x, 0.0f, movementRight.z)));
+          }
+          if (ev.key.keysym.sym == SDLK_d) {
+            cameraPos = sub(cameraPos, mult(camSpeed * (float)deltaT, vec3(movementRight.x, 0.0f, movementRight.z)));
+          }
+          if (ev.key.keysym.sym == SDLK_k) {
+              i--;
+          }
+          if (ev.key.keysym.sym == SDLK_l) {
+              i++;
+          }
+          if (ev.key.keysym.sym == SDLK_LEFT) {
+              rx-= 0.01;
+          }
+          if (ev.key.keysym.sym == SDLK_RIGHT) {
+              rx+= 0.01;
+          }
+          if (ev.key.keysym.sym == SDLK_ESCAPE) {
+              play = 0;
+          }
+        }
+        if (ev.type == SDL_MOUSEMOTION)
+        {
+          if (firstMouse)
+          {
+            mouse(ev.motion.x, ev.motion.y);
+            firstMouse = 1;
+          }
+          else
+          {
+            mouse(ev.motion.xrel, ev.motion.yrel);
+          }
+        }
       }
 
-      lPos.x = 1.f - sin(glfwGetTime()) * 5.f;
-      lPos.z = cos(glfwGetTime()) * 5.f;
+      lPos.x = 1.f - sin(SDL_GetTicks()) * 5.f;
+      lPos.z = cos(SDL_GetTicks()) * 5.f;
 
       setVec3("lightPos", lPos);
       setVec3("camPosition", cameraPos);
@@ -191,16 +191,14 @@ int main() {
       setFloat("mousey", -pitch);
       setFloat("rx", rx);
 
-      setFloat("iResolution.x", mode->width);
-      setFloat("iResolution.y", mode->height);
+      setFloat("iResolution.x", mode.w);
+      setFloat("iResolution.y", mode.h);
       setVec3("Color", vec3(1.f, 1.f, 1.f));
       glBindVertexArray(array);
       glDrawArrays(GL_TRIANGLES, 0, 3);
 
-      glfwSwapBuffers(game);
-      glfwPollEvents();
+      SDL_GL_SwapWindow(game);
     }
 
-    glfwDestroyWindow(game);
-    glfwTerminate();
+    SDL_Quit();
 }
