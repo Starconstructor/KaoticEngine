@@ -3,6 +3,7 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include "GlShader.h"
+#include <time.h>
 
 unsigned int vbo, array;
 
@@ -13,14 +14,14 @@ float lastX =  800.0f / 2.0;
 float lastY =  600.0 / 2.0;
 float height = 3.0f;
 
-struct vec3 cameraPos;
+vec3 cameraPos;
 
 int firstMouse = 0;
-struct vec3 cameraFront;
-struct vec3 movementFront;
-struct vec3 cameraRight;
-struct vec3 movementRight;
-struct vec3 cameraUp;
+vec3 cameraFront;
+vec3 movementFront;
+vec3 cameraRight;
+vec3 movementRight;
+vec3 cameraUp;
 
 void mouse(double xpos, double ypos) {
     float xoffset = xpos;
@@ -38,8 +39,8 @@ void mouse(double xpos, double ypos) {
     if (pitch < -89.0f)
         pitch = -89.0f;
 
-      struct vec3 front;
-      struct vec3 right;
+      vec3 front;
+      vec3 right;
       front.x = sin(yaw);
       front.y = 1.0f;
       front.z = cos(yaw);
@@ -52,11 +53,11 @@ void mouse(double xpos, double ypos) {
 
 int main() {
 
-  cameraPos = vec3(0.f, 1.f, 0.f);
+  cameraPos = Vec3(0.f, 1.f, 0.f);
 
-  movementFront = vec3(0.0f, 0.0f, -1.0f);
-  movementRight = vec3(-1.0f, 0.0f, 0.0f);
-  cameraUp = vec3(0.0f, 1.0f, 0.0f);
+  movementFront = Vec3(0.0f, 0.0f, -1.0f);
+  movementRight = Vec3(-1.0f, 0.0f, 0.0f);
+  cameraUp = Vec3(0.0f, 1.0f, 0.0f);
 
     SDL_Init(SDL_INIT_EVERYTHING);
     //sets up window//camera data
@@ -97,10 +98,6 @@ int main() {
       4.0f, -2.0f
     };
 
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_BLEND);
-    glEnable(GL_DEPTH_TEST);
-
     float lastFrame = 0.0f;
     Shader("shaders/vertex.vshad", "shaders/frag.fshad");
 
@@ -115,12 +112,19 @@ int main() {
     int i = 100;
     float x = 0.0f;
     float z = 0.0f;
-    float rx = 0.0f;
-    struct vec3 lPos = vec3(0.f, 4.f, 3.f);
+    vec3 lPos = Vec3(0.f, 4.f, 3.f);
     float firstFrame, deltaT;
     int bol = 0;
-    float camSpeed = 0.0001f;
+    float camSpeed = 10.f;
     int play = 1;
+    unsigned int frames = 0;
+
+    int w = 1;
+    int a = 1;
+    int s = 1;
+    int d = 1;
+    int k = 1;
+    int l = 1;
 
     //game loop
     while (play != 0) {
@@ -130,13 +134,12 @@ int main() {
 
       if (bol = 0)
       {
-        bol = 1;
         firstFrame = SDL_GetTicks() / 1000.f;
+        bol = 1;
       }
 
       deltaT = (currentFrame - lastFrame);
       lastFrame = currentFrame;
-      printf("%f %f\n", yaw, pitch);
 
       SDL_Event ev;
       while (SDL_PollEvent(&ev))
@@ -145,35 +148,80 @@ int main() {
         {
           case SDL_KEYDOWN:
             if (ev.key.keysym.sym == SDLK_w) {
-              cameraPos = ad(cameraPos, mult(camSpeed * deltaT, vec3(movementFront.x, 0.0f, movementFront.z)));
+              w = 0;
+              break;
             }
             if (ev.key.keysym.sym == SDLK_s) {
-              cameraPos = sub(cameraPos, mult(camSpeed * deltaT, vec3(movementFront.x, 0.0f, movementFront.z)));
+              s = 0;
+              break;
             }
             if (ev.key.keysym.sym == SDLK_a) {
-              cameraPos = ad(cameraPos, mult(camSpeed * deltaT, vec3(movementRight.x, 0.0f, movementRight.z)));
+              a = 0;
+              break;
             }
             if (ev.key.keysym.sym == SDLK_d) {
-              cameraPos = sub(cameraPos, mult(camSpeed * deltaT, vec3(movementRight.x, 0.0f, movementRight.z)));
+              d = 0;
+              break;
             }
             if (ev.key.keysym.sym == SDLK_k) {
-                i--;
+                k = 0;
+                break;
             }
             if (ev.key.keysym.sym == SDLK_l) {
-                i++;
-            }
-            if (ev.key.keysym.sym == SDLK_LEFT) {
-                rx-= 0.01;
-            }
-            if (ev.key.keysym.sym == SDLK_RIGHT) {
-                rx+= 0.01;
+                l = 0;
+                break;
             }
             if (ev.key.keysym.sym == SDLK_ESCAPE) {
                 play = 0;
+                break;
+            }
+          case SDL_KEYUP:
+            if (ev.key.keysym.sym == SDLK_w) {
+              w = 1;
+              break;
+            }
+            if (ev.key.keysym.sym == SDLK_s) {
+              s = 1;
+              break;
+            }
+            if (ev.key.keysym.sym == SDLK_a) {
+              a = 1;
+              break;
+            }
+            if (ev.key.keysym.sym == SDLK_d) {
+              d = 1;
+              break;
+            }
+            if (ev.key.keysym.sym == SDLK_k) {
+              k = 1;
+              break;
+            }
+            if (ev.key.keysym.sym == SDLK_l) {
+              l = 1;
+              break;
             }
           case SDL_MOUSEMOTION:
             mouse(ev.motion.xrel, ev.motion.yrel);
+            break;
         }
+      }
+      if (w == 0) {
+        cameraPos = ad(cameraPos, mult(camSpeed * deltaT, Vec3(movementFront.x, 0.0f, movementFront.z)));
+      }
+      if (s == 0) {
+        cameraPos = sub(cameraPos, mult(camSpeed * deltaT, Vec3(movementFront.x, 0.0f, movementFront.z)));
+      }
+      if (a == 0) {
+        cameraPos = ad(cameraPos, mult(camSpeed * deltaT, Vec3(movementRight.x, 0.0f, movementRight.z)));
+      }
+      if (d == 0) {
+        cameraPos = sub(cameraPos, mult(camSpeed * deltaT, Vec3(movementRight.x, 0.0f, movementRight.z)));
+      }
+      if (k == 0) {
+          i--;
+      }
+      if (l == 0) {
+          i++;
       }
 
       lPos.x = 1.f - sin(SDL_GetTicks() / 1000.f) * 5.f;
@@ -185,11 +233,10 @@ int main() {
       setFloat("maximum", i);
       setFloat("mousex", yaw);
       setFloat("mousey", pitch);
-      setFloat("rx", rx);
 
       setFloat("iResolution.x", mode.w);
       setFloat("iResolution.y", mode.h);
-      setVec3("Color", vec3(1.f, 1.f, 1.f));
+      setVec3("Color", Vec3(1.f, 1.f, 1.f));
       glBindVertexArray(array);
       glDrawArrays(GL_TRIANGLES, 0, 3);
 
