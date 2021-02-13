@@ -6,7 +6,7 @@ out vec4 color;
 uniform vec3 Color;
 uniform vec3 lightPos, camPosition;
 uniform float maximum;
-uniform float mousex, mousey, rx;
+uniform float mousex, mousey;
 
 vec3 normie;
 

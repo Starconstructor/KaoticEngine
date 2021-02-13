@@ -88,6 +88,7 @@
     glUseProgram(ID);
   }
 
+<<<<<<< HEAD
   void cShader() {
     int tex_w = 512, tex_h = 512;
     GLuint tex_output;
@@ -115,6 +116,8 @@
     printf("max local (in one shader) work group sizes x:%i y:%i z:%i\n", workSize[0], workSize[1], workSize[2]);
   }
 
+=======
+>>>>>>> SDL
   void setInt(const char* name, int value) {
     glUniform1i(glGetUniformLocation(ID, name), value);
   }
@@ -125,7 +128,7 @@
     glUniformMatrix4fv(glGetUniformLocation(ID, name), 1, GL_FALSE, glm::value_ptr(gorg));
   }
   */
-  void setVec3(const char* name, struct vec3 value) {
+  void setVec3(const char* name, vec3 value) {
     glUniform3f(glGetUniformLocation(ID, name), value.x, value.y, value.z);
   }
 #endif
