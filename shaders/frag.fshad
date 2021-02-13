@@ -8,7 +8,20 @@ uniform vec3 lightPos, camPosition;
 uniform float maximum;
 uniform float mousex, mousey;
 
+#define SIZE 2
+
 vec3 normie;
+int id;
+
+struct gameObject
+{
+  vec3 color;
+  vec3 pos;
+  int SDF;
+  int ID;
+};
+
+uniform gameObject objs[SIZE];
 
 uniform struct {
   float x;
@@ -72,31 +85,35 @@ float cubSDF (vec3 pos)
   return max(abs(pos.x), max(abs(pos.y), abs(pos.z))) - 0.5;
 }
 
-float spherSDF (vec3 p, float radius)
+float spherSDF (vec3 p)
 {
-  return length(p) - radius;
+  return length(p) - 1;
 }
 
-float floorDist (vec3 p) {
+float floorSDF (vec3 p) {
   return p.y;
 }
 
 float sceneDistance(vec3 smol)
 {
-  vec4 spher = vec4(-1, 1, 6, 1);
-  float spherDist = spherSDF(smol - spher.xyz, spher.w);
-  float planDist = floorDist(smol);
-
-  vec3 cub = vec3(1, 1, 6);
-  float cubDist = cubSDF(smol - cub);
-
-  vec3 bun = vec3(-3, 0.55, 6);
-  float bunDist = bunny((smol - bun).xzy);
-
-  float ultrasmol;
-  ultrasmol = min(spherDist, planDist);
-  ultrasmol = min(ultrasmol, bunDist);
-  ultrasmol = min(ultrasmol, cubDist);
+  float ultrasmol = 100.0;
+  float dist;
+  for (int i = 0; i < SIZE; i++)
+  {
+    switch (objs[i].SDF)
+    {
+      case 0:
+        dist = floorSDF(smol);
+        ultrasmol = min(ultrasmol, dist);
+        if (ultrasmol < dist) id = objs[i].ID;
+        break;
+      case 1:
+        dist = spherSDF(smol - objs[i].pos);
+        ultrasmol = min(ultrasmol, dist);
+        if (ultrasmol < dist) id = objs[i].ID;
+        break;
+    }
+  }
   return ultrasmol;
 }
 
@@ -160,9 +177,10 @@ vec3 lighting(vec3 fragPos, vec3 rayOrigin) {
     diff *= 0.1;
     spec = 0.0;
   }
-  vec3 diffuse = diff * vec3(0.9, 0.9, 0.9) * Color;
 
-  vec3 specular = spec * vec3(0.9, 0.9, 0.9);
+  vec3 diffuse = vec3(0.9, 0.9, 0.9) * diff * objs[id].color;
+
+  vec3 specular = spec * Color;
   return diffuse + specular;
 }
 

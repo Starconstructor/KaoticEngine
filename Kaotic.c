@@ -3,7 +3,7 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include "GlShader.h"
-#include <time.h>
+#include "Overlord.h"
 
 unsigned int vbo, array;
 
@@ -22,6 +22,8 @@ vec3 movementFront;
 vec3 cameraRight;
 vec3 movementRight;
 vec3 cameraUp;
+
+Overlord *root = NULL;
 
 void mouse(double xpos, double ypos) {
     float xoffset = xpos;
@@ -126,6 +128,19 @@ int main() {
     int k = 1;
     int l = 1;
 
+    gameObject ob;
+    ob.color = Vec3(1.f, 1.f, 1.f);
+    ob.SDF = 0;
+    ob.pos = Vec3(0.f, 0.f, 0.f);
+    if (push_back(&root, ob)) return 1;
+    else printf("Object created! ID:%i\n", root->size - 1);
+
+    ob.color = Vec3(0.f, 1.f, 1.f);
+    ob.SDF = 1;
+    ob.pos = Vec3(0.f, 1.f, 3.f);
+    if (push_back(&root, ob)) return 1;
+    else printf("Object created! ID:%i\n", root->size - 1);
+
     //game loop
     while (play != 0) {
       float currentFrame = SDL_GetTicks() / 1000.f;
@@ -175,6 +190,7 @@ int main() {
                 play = 0;
                 break;
             }
+            else break;
           case SDL_KEYUP:
             if (ev.key.keysym.sym == SDLK_w) {
               w = 1;
@@ -226,6 +242,22 @@ int main() {
 
       lPos.x = 1.f - sin(SDL_GetTicks() / 1000.f) * 5.f;
       lPos.z = cos(SDL_GetTicks() / 1000.f) * 5.f;
+
+      root->everything[1].pos = lPos;
+
+      for(int oo = 0; oo < root->size; oo++)
+      {
+        gameObject obj = root->everything[oo];
+        char str[40];
+        sprintf(str, "objs[%i].color", oo);
+        setVec3(str, obj.color);
+        sprintf(str, "objs[%i].pos", oo);
+        setVec3(str, obj.pos);
+        sprintf(str, "objs[%i].ID", oo);
+        setInt(str, obj.ID);
+        sprintf(str, "objs[%i].SDF", oo);
+        setInt(str, obj.SDF);
+      }
 
       setVec3("lightPos", lPos);
       setVec3("camPosition", cameraPos);
