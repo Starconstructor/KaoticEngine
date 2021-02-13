@@ -105,12 +105,12 @@ float sceneDistance(vec3 smol)
       case 0:
         dist = floorSDF(smol);
         ultrasmol = min(ultrasmol, dist);
-        if (ultrasmol < dist) id = objs[i].ID;
+        if (ultrasmol == dist) id = objs[i].ID;
         break;
       case 1:
         dist = spherSDF(smol - objs[i].pos);
         ultrasmol = min(ultrasmol, dist);
-        if (ultrasmol < dist) id = objs[i].ID;
+        if (ultrasmol == dist) id = objs[i].ID;
         break;
     }
   }
