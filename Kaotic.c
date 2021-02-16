@@ -137,7 +137,13 @@ int main() {
 
     ob.color = Vec3(0.f, 1.f, 1.f);
     ob.SDF = 1;
-    ob.pos = Vec3(0.f, 1.f, 3.f);
+    ob.pos = Vec3(0.f, 1.f, 6.f);
+    if (push_back(&root, ob)) return 1;
+    else printf("Object created! ID:%i\n", root->size - 1);
+
+    ob.color = Vec3(0.f, 1.f, 1.f);
+    ob.SDF = 1;
+    ob.pos = Vec3(2.f, 1.f, 6.f);
     if (push_back(&root, ob)) return 1;
     else printf("Object created! ID:%i\n", root->size - 1);
 
@@ -216,6 +222,7 @@ int main() {
               l = 1;
               break;
             }
+            else break;
           case SDL_MOUSEMOTION:
             mouse(ev.motion.xrel, ev.motion.yrel);
             break;
@@ -240,10 +247,10 @@ int main() {
           i++;
       }
 
-      lPos.x = 1.f - sin(SDL_GetTicks() / 1000.f) * 5.f;
-      lPos.z = cos(SDL_GetTicks() / 1000.f) * 5.f;
+      //lPos.x = 1.f - sin(SDL_GetTicks() / 1000.f) * 5.f;
+      //lPos.z = cos(SDL_GetTicks() / 1000.f) * 5.f;
 
-      root->everything[1].pos = lPos;
+      root->everything[1].pos.y = cos(SDL_GetTicks() / 1000.f) + 2.f;
 
       for(int oo = 0; oo < root->size; oo++)
       {
