@@ -31,13 +31,19 @@
     }
   }
 
-  void Shader(const char* vPath, const char* fPath) {
+  void Shader(const char* vPath, const char* fPath, const char* mods) {
     //finding shaders and converting the code
     FILE *vShad;
     FILE *fShad;
 
-    vShad = fopen(vPath, "r");
-    fShad = fopen(fPath, "r");
+    vShad = fopen(vPath, "rw");
+    fShad = fopen(fPath, "rw");
+
+    /*fseek(fShad, 0, SEEK_END);
+    long fLenx = ftell(fShad);
+    char* test = (char*)malloc(fLenx + 1);
+    fseek(fShad, 142, SEEK_SET);
+    fprintf(fShad, "%s\n", mods);*/
 
     fseek(vShad, 0, SEEK_END);
     fseek(fShad, 0, SEEK_END);

@@ -101,7 +101,7 @@ int main() {
     };
 
     float lastFrame = 0.0f;
-    Shader("shaders/vertex.vshad", "shaders/frag.fshad");
+    Shader("shaders/vertex.vshad", "shaders/frag.fshad", "");
 
     glGenVertexArrays(1, &array);
     glGenBuffers(1, &vbo);
@@ -121,29 +121,34 @@ int main() {
     int play = 1;
     unsigned int frames = 0;
 
-    int w = 1;
-    int a = 1;
-    int s = 1;
-    int d = 1;
-    int k = 1;
-    int l = 1;
+    int w = 1, a = 1, s = 1, d = 1, k = 1, l = 1, rise = 1;
 
     gameObject ob;
     ob.color = Vec3(1.f, 1.f, 1.f);
     ob.SDF = 0;
+    ob.mat[0].Simplex = 0;
     ob.pos = Vec3(0.f, 0.f, 0.f);
     if (push_back(&root, ob)) return 1;
     else printf("Object created! ID:%i\n", root->size - 1);
 
     ob.color = Vec3(0.f, 1.f, 1.f);
     ob.SDF = 1;
+    ob.mat[0].Simplex = 1;
     ob.pos = Vec3(0.f, 1.f, 6.f);
     if (push_back(&root, ob)) return 1;
     else printf("Object created! ID:%i\n", root->size - 1);
 
-    ob.color = Vec3(0.f, 1.f, 1.f);
-    ob.SDF = 1;
+    ob.color = Vec3(1.f, 0.f, 0.f);
+    ob.SDF = 2;
+    ob.mat[0].Simplex = 0;
     ob.pos = Vec3(2.f, 1.f, 6.f);
+    if (push_back(&root, ob)) return 1;
+    else printf("Object created! ID:%i\n", root->size - 1);
+
+    ob.color = Vec3(1.f, 0.f, 1.f);
+    ob.SDF = 2;
+    ob.mat[0].Simplex = 0;
+    ob.pos = Vec3(-2.f, 1.f, 6.f);
     if (push_back(&root, ob)) return 1;
     else printf("Object created! ID:%i\n", root->size - 1);
 
@@ -196,6 +201,10 @@ int main() {
                 play = 0;
                 break;
             }
+            if (ev.key.keysym.sym == SDLK_SPACE) {
+                rise = 0;
+                break;
+            }
             else break;
           case SDL_KEYUP:
             if (ev.key.keysym.sym == SDLK_w) {
@@ -222,22 +231,30 @@ int main() {
               l = 1;
               break;
             }
+            if (ev.key.keysym.sym == SDLK_SPACE) {
+                rise = 1;
+                break;
+            }
             else break;
           case SDL_MOUSEMOTION:
             mouse(ev.motion.xrel, ev.motion.yrel);
             break;
         }
       }
-      if (w == 0) {
+      if (w == 0)
+      {
         cameraPos = ad(cameraPos, mult(camSpeed * deltaT, Vec3(movementFront.x, 0.0f, movementFront.z)));
       }
-      if (s == 0) {
+      if (s == 0)
+      {
         cameraPos = sub(cameraPos, mult(camSpeed * deltaT, Vec3(movementFront.x, 0.0f, movementFront.z)));
       }
-      if (a == 0) {
+      if (a == 0)
+      {
         cameraPos = ad(cameraPos, mult(camSpeed * deltaT, Vec3(movementRight.x, 0.0f, movementRight.z)));
       }
-      if (d == 0) {
+      if (d == 0)
+      {
         cameraPos = sub(cameraPos, mult(camSpeed * deltaT, Vec3(movementRight.x, 0.0f, movementRight.z)));
       }
       if (k == 0) {
@@ -246,11 +263,13 @@ int main() {
       if (l == 0) {
           i++;
       }
+      if (rise == 0)
+      {
+        cameraPos.y += 1.f;
+      }
 
-      //lPos.x = 1.f - sin(SDL_GetTicks() / 1000.f) * 5.f;
-      //lPos.z = cos(SDL_GetTicks() / 1000.f) * 5.f;
-
-      root->everything[1].pos.y = cos(SDL_GetTicks() / 1000.f) + 2.f;
+      lPos.x = 1.f - sin(SDL_GetTicks() / 1000.f) * 5.f;
+      lPos.z = cos(SDL_GetTicks() / 1000.f) * 5.f;
 
       for(int oo = 0; oo < root->size; oo++)
       {
@@ -264,6 +283,8 @@ int main() {
         setInt(str, obj.ID);
         sprintf(str, "objs[%i].SDF", oo);
         setInt(str, obj.SDF);
+        sprintf(str, "objs[%i].mat[0].Simplex", oo);
+        setInt(str, obj.mat[0].Simplex);
       }
 
       setVec3("lightPos", lPos);

@@ -3,10 +3,16 @@
 
 typedef struct
 {
+  int Simplex;
+} Material;
+
+typedef struct
+{
   vec3 color;
   vec3 pos;
   int SDF;
   float ID;
+  Material mat[1];
 } gameObject;
 
 typedef struct
