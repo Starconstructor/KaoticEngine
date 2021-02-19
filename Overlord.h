@@ -12,7 +12,7 @@ typedef struct
   vec3 pos;
   int SDF;
   float ID;
-  Material mat[1];
+  Material mat;
 } gameObject;
 
 typedef struct

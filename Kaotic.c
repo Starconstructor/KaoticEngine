@@ -101,6 +101,19 @@ int main() {
     };
 
     float lastFrame = 0.0f;
+
+    GLuint uTexture;
+    glGenTextures(1, &uTexture);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, uTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, mode.w, mode.h, 0, GL_RGBA, GL_FLOAT, NULL);
+    glBindImageTexture(0, uTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+    cShader("shaders/main.glsl", "");
     Shader("shaders/vertex.vshad", "shaders/frag.fshad", "");
 
     glGenVertexArrays(1, &array);
@@ -126,28 +139,28 @@ int main() {
     gameObject ob;
     ob.color = Vec3(1.f, 1.f, 1.f);
     ob.SDF = 0;
-    ob.mat[0].Simplex = 0;
+    ob.mat.Simplex = 0;
     ob.pos = Vec3(0.f, 0.f, 0.f);
     if (push_back(&root, ob)) return 1;
     else printf("Object created! ID:%i\n", root->size - 1);
 
     ob.color = Vec3(0.f, 1.f, 1.f);
     ob.SDF = 1;
-    ob.mat[0].Simplex = 1;
+    ob.mat.Simplex = 1;
     ob.pos = Vec3(0.f, 1.f, 6.f);
     if (push_back(&root, ob)) return 1;
     else printf("Object created! ID:%i\n", root->size - 1);
 
     ob.color = Vec3(1.f, 0.f, 0.f);
     ob.SDF = 2;
-    ob.mat[0].Simplex = 0;
+    ob.mat.Simplex = 0;
     ob.pos = Vec3(2.f, 1.f, 6.f);
     if (push_back(&root, ob)) return 1;
     else printf("Object created! ID:%i\n", root->size - 1);
 
     ob.color = Vec3(1.f, 0.f, 1.f);
     ob.SDF = 2;
-    ob.mat[0].Simplex = 0;
+    ob.mat.Simplex = 0;
     ob.pos = Vec3(-2.f, 1.f, 6.f);
     if (push_back(&root, ob)) return 1;
     else printf("Object created! ID:%i\n", root->size - 1);
@@ -283,8 +296,8 @@ int main() {
         setInt(str, obj.ID);
         sprintf(str, "objs[%i].SDF", oo);
         setInt(str, obj.SDF);
-        sprintf(str, "objs[%i].mat[0].Simplex", oo);
-        setInt(str, obj.mat[0].Simplex);
+        sprintf(str, "objs[%i].mat.Simplex", oo);
+        setInt(str, obj.mat.Simplex);
       }
 
       setVec3("lightPos", lPos);

@@ -1,5 +1,10 @@
 #version 460 core
-out vec4 color;
+layout(local_size_x = 1, local_size_y = 1) in;
+layout(rgba32f, binding = 0) uniform image2D uTexture;
+
+ivec2 FragCoord = ivec2(gl_GlobalInvocationID.xy);
+
+vec4 color;
 uniform vec3 Color;
 uniform vec3 lightPos, camPosition;
 uniform float maximum;
@@ -290,7 +295,7 @@ vec3 lighting(vec3 rayOrigin, float dist) {
 
 void main() {
   vec2 rez = vec2(iResolution.x, iResolution.y);
-  vec2 uv = (gl_FragCoord.xy - 0.5 * rez.xy) / rez.x;
+  vec2 uv = (FragCoord.xy - 0.5 * rez.xy) / rez.x;
 
   vec3 rayOrigin = camPosition;
   vec3 rayDir = vec3(uv.x, uv.y, 1.0);
@@ -320,4 +325,6 @@ void main() {
   //color = vec4(fragPos, 1.0);
   //color = vec4(normie, 1.0);
   color = vec4(final, 1.0);
+
+  imageStore(uTexture, FragCoord, color);
 }
