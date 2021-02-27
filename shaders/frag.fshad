@@ -104,7 +104,7 @@ void matGrab(int i)
   else diffcolor *= 1.f;
 }
 
-float bunny(vec3 p, vec3 col) {
+float bunny(vec3 p) {
     if (length(p) > 1.) {
         return (length(p)-0.9);
     }
@@ -152,7 +152,6 @@ float bunny(vec3 p, vec3 col) {
         mat4(-.10,.52,.80,-.65,.40,-.75,.47,1.56,.03,.05,.08,.31,-.03,.22,-1.63,.07)*f12+
         mat4(-.18,-.07,-1.22,.48,-.01,.56,.07,.15,.24,.25,-.09,-.54,.23,-.08,.20,.36)*f13+
         vec4(-1.11,-4.28,1.02,-.23))/1.4+f13;
-    diffcolor = col;
     return dot(f00,vec4(.09,.12,-.07,-.03))+dot(f01,vec4(-.04,.07,-.08,.05))+
         dot(f02,vec4(-.01,.06,-.02,.07))+dot(f03,vec4(-.05,.07,.03,.04))-0.16;
 }
@@ -185,6 +184,10 @@ float SDF(gameObject thing, vec3 pos)
   if (thing.SDF == 2)
   {
     return cubSDF(pos);
+  }
+  if (thing.SDF == 3)
+  {
+    return bunny(pos);
   }
 }
 
@@ -239,7 +242,6 @@ vec3 NormalGrab() {
 vec3 lighting(vec3 rayOrigin, float dist) {
   normie = NormalGrab();
   vec3 lPos = lightPos;
-  lPos.xz += vec2(sin(maximum) * 8, cos(maximum) * 4);
   vec3 lightDeg = normalize(lPos - fragPos);
   float diff = clamp(dot(normie, lightDeg), 0.0, 1.0);
 

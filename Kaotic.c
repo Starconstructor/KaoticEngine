@@ -113,7 +113,7 @@ int main() {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, mode.w, mode.h, 0, GL_RGBA, GL_FLOAT, NULL);
     glBindImageTexture(0, uTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
-    cShader("shaders/main.glsl", "");
+    //cShader("shaders/main.glsl", "");
     Shader("shaders/vertex.vshad", "shaders/frag.fshad", "");
 
     glGenVertexArrays(1, &array);
@@ -148,6 +148,13 @@ int main() {
     ob.SDF = 1;
     ob.mat.Simplex = 1;
     ob.pos = Vec3(0.f, 1.f, 6.f);
+    if (push_back(&root, ob)) return 1;
+    else printf("Object created! ID:%i\n", root->size - 1);
+
+    ob.color = Vec3(1.f, 0.f, 0.f);
+    ob.SDF = 3;
+    ob.mat.Simplex = 1;
+    ob.pos = Vec3(0.f, 1.f, 3.f);
     if (push_back(&root, ob)) return 1;
     else printf("Object created! ID:%i\n", root->size - 1);
 
