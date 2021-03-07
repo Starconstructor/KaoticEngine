@@ -1,6 +1,6 @@
 #define GLEW_STATIC
 #include <glad/glad.h>
-#include <SDL2/SDL.h>
+#include <GLFW/glfw3.h>
 #include <stdio.h>
 #include "GlShader.h"
 #include "Overlord.h"
@@ -13,6 +13,7 @@ float pitch =  0.0f;
 float lastX =  800.0f / 2.0;
 float lastY =  600.0 / 2.0;
 float height = 3.0f;
+int firstmouse = 0;
 
 vec3 cameraPos;
 
@@ -25,16 +26,29 @@ vec3 cameraUp;
 
 Overlord *root = NULL;
 
-void mouse(double xpos, double ypos) {
-    float xoffset = xpos;
-    float yoffset = ypos;
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    glViewport(0, 0, width, height);
+}
+
+void mouse(GLFWwindow* window, double xpos, double ypos) {
+  if (firstMouse == 0) {
+      lastX = xpos;
+      lastY = ypos;
+      firstMouse = 1;
+  }
+
+  float xoffset = xpos - lastX;
+  float yoffset = lastY - ypos;
+  lastX = xpos;
+  lastY = ypos;
 
     float sensitivity = 0.001f;
     xoffset *= sensitivity;
     yoffset *= sensitivity;
 
     yaw += xoffset;
-    pitch += yoffset;
+    pitch -= yoffset;
 
     if (pitch > 89.0f)
         pitch = 89.0f;
@@ -54,51 +68,35 @@ void mouse(double xpos, double ypos) {
 }
 
 int main() {
-
   cameraPos = Vec3(0.f, 1.f, 0.f);
 
   movementFront = Vec3(0.0f, 0.0f, -1.0f);
   movementRight = Vec3(-1.0f, 0.0f, 0.0f);
   cameraUp = Vec3(0.0f, 1.0f, 0.0f);
 
-    SDL_Init(SDL_INIT_EVERYTHING);
-    //sets up window//camera data
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_DisplayMode mode;
-    SDL_GetDesktopDisplayMode(0, &mode);
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16);
-    SDL_Window* game = SDL_CreateWindow("Kaotic", 0, 0, mode.w, mode.h, SDL_WINDOW_MOUSE_CAPTURE|SDL_WINDOW_FULLSCREEN|SDL_WINDOW_OPENGL);
-    SDL_GLContext glcontext = SDL_GL_CreateContext(game);
-    SDL_ShowCursor(SDL_DISABLE);
-    SDL_SetRelativeMouseMode(SDL_TRUE);
-
-    if (!game) {
-        printf("ERROR: Window failed to initialize.\n");
-        SDL_Quit();
-        exit(1);
-    }
-    if (!glcontext)
-    {
-      printf("ERROR: Window context failed to initialize.\n");
-      SDL_Quit();
-      exit(1);
-    }
-    if (!gladLoadGLLoader(SDL_GL_GetProcAddress))
-    {
-      printf("ERROR: GLAD failed to load.\n");
-      SDL_Quit();
-      exit(1);
-    }
-
-    float gameWindow[] =
-    {
-      -4.0f, -2.0f,
-      0.0f, 10.0f,
-      4.0f, -2.0f
-    };
+  glfwInit();
+  //sets up window//camera data
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+  GLFWwindow* game = glfwCreateWindow(mode->width, mode->height, "LearnOpenGL", glfwGetPrimaryMonitor(), NULL);
+  glfwSetInputMode(game, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwMakeContextCurrent(game);
+  if (!game)
+  {
+    printf("ERROR: Window failed to initialize.\n");
+    glfwTerminate();
+    exit(1);
+  }
+  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+  {
+    printf("ERROR: GLAD failed to load.\n");
+    glfwTerminate();
+    exit(1);
+  }
+  glfwSetFramebufferSizeCallback(game, framebuffer_size_callback);
+  glfwSetCursorPosCallback(game, mouse);
 
     float lastFrame = 0.0f;
 
@@ -110,27 +108,24 @@ int main() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, mode.w, mode.h, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, mode->width, mode->height, 0, GL_RGBA, GL_FLOAT, NULL);
     glBindImageTexture(0, uTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
-    //cShader("shaders/main.glsl", "");
-    Shader("shaders/vertex.vshad", "shaders/frag.fshad", "");
+    unsigned int main = cShader("shaders/main.glsl", "");
+    unsigned int raytrac = cShader("shaders/raytrace.glsl", "");
 
-    glGenVertexArrays(1, &array);
-    glGenBuffers(1, &vbo);
-    glBindVertexArray(array);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(gameWindow), gameWindow, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glBindVertexArray(array);
+    useShad(main);
+    setInt("uTexture", 0, main);
+    useShad(raytrac);
+    setInt("uTexture", 0, raytrac);
+
     int i = 100;
     float x = 0.0f;
     float z = 0.0f;
     vec3 lPos = Vec3(0.f, 4.f, 3.f);
     float firstFrame, deltaT;
     int bol = 0;
-    float camSpeed = 10.f;
+    float camSpeed = 10000.f;
     int play = 1;
     unsigned int frames = 0;
 
@@ -140,27 +135,30 @@ int main() {
     ob.color = Vec3(1.f, 1.f, 1.f);
     ob.SDF = 0;
     ob.mat.Simplex = 0;
+    ob.mat.raytraced = 0;
     ob.pos = Vec3(0.f, 0.f, 0.f);
+    if (push_back(&root, ob)) return 1;
+    else printf("Object created! ID:%i\n", root->size - 1);
+
+    ob.color = Vec3(1.f, 1.f, 1.f);
+    ob.SDF = 1;
+    ob.mat.Simplex = 1;
+    ob.pos = lPos;
     if (push_back(&root, ob)) return 1;
     else printf("Object created! ID:%i\n", root->size - 1);
 
     ob.color = Vec3(0.f, 1.f, 1.f);
     ob.SDF = 1;
     ob.mat.Simplex = 1;
+    ob.mat.raytraced = 1;
     ob.pos = Vec3(0.f, 1.f, 6.f);
-    if (push_back(&root, ob)) return 1;
-    else printf("Object created! ID:%i\n", root->size - 1);
-
-    ob.color = Vec3(1.f, 0.f, 0.f);
-    ob.SDF = 3;
-    ob.mat.Simplex = 1;
-    ob.pos = Vec3(0.f, 1.f, 3.f);
     if (push_back(&root, ob)) return 1;
     else printf("Object created! ID:%i\n", root->size - 1);
 
     ob.color = Vec3(1.f, 0.f, 0.f);
     ob.SDF = 2;
     ob.mat.Simplex = 0;
+    ob.mat.raytraced = 0;
     ob.pos = Vec3(2.f, 1.f, 6.f);
     if (push_back(&root, ob)) return 1;
     else printf("Object created! ID:%i\n", root->size - 1);
@@ -172,157 +170,154 @@ int main() {
     if (push_back(&root, ob)) return 1;
     else printf("Object created! ID:%i\n", root->size - 1);
 
+    unsigned int framebuffer;
+    glGenFramebuffers(1, &framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, uTexture, 0);
+
     //game loop
     while (play != 0) {
-      float currentFrame = SDL_GetTicks() / 1000.f;
+      float currentFrame = glfwGetTime() / 1000.f;
       glClearColor(0.0, 1.0, 0.0, 1.0);
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      glClear(GL_COLOR_BUFFER_BIT);
 
       if (bol = 0)
       {
-        firstFrame = SDL_GetTicks() / 1000.f;
+        firstFrame = glfwGetTime() / 1000.f;
         bol = 1;
       }
 
       deltaT = (currentFrame - lastFrame);
       lastFrame = currentFrame;
+    glfwPollEvents();
 
-      SDL_Event ev;
-      while (SDL_PollEvent(&ev))
-      {
-        switch (ev.type)
-        {
-          case SDL_KEYDOWN:
-            if (ev.key.keysym.sym == SDLK_w) {
-              w = 0;
-              break;
-            }
-            if (ev.key.keysym.sym == SDLK_s) {
-              s = 0;
-              break;
-            }
-            if (ev.key.keysym.sym == SDLK_a) {
-              a = 0;
-              break;
-            }
-            if (ev.key.keysym.sym == SDLK_d) {
-              d = 0;
-              break;
-            }
-            if (ev.key.keysym.sym == SDLK_k) {
-                k = 0;
-                break;
-            }
-            if (ev.key.keysym.sym == SDLK_l) {
-                l = 0;
-                break;
-            }
-            if (ev.key.keysym.sym == SDLK_ESCAPE) {
-                play = 0;
-                break;
-            }
-            if (ev.key.keysym.sym == SDLK_SPACE) {
-                rise = 0;
-                break;
-            }
-            else break;
-          case SDL_KEYUP:
-            if (ev.key.keysym.sym == SDLK_w) {
-              w = 1;
-              break;
-            }
-            if (ev.key.keysym.sym == SDLK_s) {
-              s = 1;
-              break;
-            }
-            if (ev.key.keysym.sym == SDLK_a) {
-              a = 1;
-              break;
-            }
-            if (ev.key.keysym.sym == SDLK_d) {
-              d = 1;
-              break;
-            }
-            if (ev.key.keysym.sym == SDLK_k) {
-              k = 1;
-              break;
-            }
-            if (ev.key.keysym.sym == SDLK_l) {
-              l = 1;
-              break;
-            }
-            if (ev.key.keysym.sym == SDLK_SPACE) {
-                rise = 1;
-                break;
-            }
-            else break;
-          case SDL_MOUSEMOTION:
-            mouse(ev.motion.xrel, ev.motion.yrel);
-            break;
-        }
-      }
-      if (w == 0)
-      {
-        cameraPos = ad(cameraPos, mult(camSpeed * deltaT, Vec3(movementFront.x, 0.0f, movementFront.z)));
-      }
-      if (s == 0)
-      {
-        cameraPos = sub(cameraPos, mult(camSpeed * deltaT, Vec3(movementFront.x, 0.0f, movementFront.z)));
-      }
-      if (a == 0)
-      {
-        cameraPos = ad(cameraPos, mult(camSpeed * deltaT, Vec3(movementRight.x, 0.0f, movementRight.z)));
-      }
-      if (d == 0)
-      {
-        cameraPos = sub(cameraPos, mult(camSpeed * deltaT, Vec3(movementRight.x, 0.0f, movementRight.z)));
-      }
-      if (k == 0) {
-          i--;
-      }
-      if (l == 0) {
-          i++;
-      }
-      if (rise == 0)
-      {
-        cameraPos.y += 1.f;
-      }
-
-      lPos.x = 1.f - sin(SDL_GetTicks() / 1000.f) * 5.f;
-      lPos.z = cos(SDL_GetTicks() / 1000.f) * 5.f;
-
-      for(int oo = 0; oo < root->size; oo++)
-      {
-        gameObject obj = root->everything[oo];
-        char str[40];
-        sprintf(str, "objs[%i].color", oo);
-        setVec3(str, obj.color);
-        sprintf(str, "objs[%i].pos", oo);
-        setVec3(str, obj.pos);
-        sprintf(str, "objs[%i].ID", oo);
-        setInt(str, obj.ID);
-        sprintf(str, "objs[%i].SDF", oo);
-        setInt(str, obj.SDF);
-        sprintf(str, "objs[%i].mat.Simplex", oo);
-        setInt(str, obj.mat.Simplex);
-      }
-
-      setVec3("lightPos", lPos);
-      setVec3("camPosition", cameraPos);
-
-      setFloat("maximum", i);
-      setFloat("mousex", yaw);
-      setFloat("mousey", pitch);
-
-      setFloat("iResolution.x", mode.w);
-      setFloat("iResolution.y", mode.h);
-      setVec3("Color", Vec3(1.f, 1.f, 1.f));
-      glBindVertexArray(array);
-      glDrawArrays(GL_TRIANGLES, 0, 3);
-
-      SDL_GL_SetSwapInterval(1);
-      SDL_GL_SwapWindow(game);
+    if (glfwGetKey(game, GLFW_KEY_W) == GLFW_PRESS)
+    {
+      cameraPos = ad(cameraPos, mult(camSpeed * deltaT, Vec3(movementFront.x, 0.0f, movementFront.z)));
+    }
+    if (glfwGetKey(game, GLFW_KEY_S) == GLFW_PRESS)
+    {
+      cameraPos = sub(cameraPos, mult(camSpeed * deltaT, Vec3(movementFront.x, 0.0f, movementFront.z)));
+    }
+    if (glfwGetKey(game, GLFW_KEY_A) == GLFW_PRESS)
+    {
+      cameraPos = ad(cameraPos, mult(camSpeed * deltaT, Vec3(movementRight.x, 0.0f, movementRight.z)));
+    }
+    if (glfwGetKey(game, GLFW_KEY_D) == GLFW_PRESS)
+    {
+      cameraPos = sub(cameraPos, mult(camSpeed * deltaT, Vec3(movementRight.x, 0.0f, movementRight.z)));
+    }
+    if (glfwGetKey(game, GLFW_KEY_K) == GLFW_PRESS) {
+        i--;
+    }
+    if (glfwGetKey(game, GLFW_KEY_L) == GLFW_PRESS) {
+        i++;
+    }
+    if (glfwGetKey(game, GLFW_KEY_SPACE) == GLFW_PRESS)
+    {
+      cameraPos.y += 1.f;
+    }
+    if (glfwGetKey(game, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+    {
+      cameraPos.y -= 1.f;
+    }
+    if (glfwGetKey(game, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    {
+      glfwSetWindowShouldClose(game, 0);
+      play = 0;
     }
 
-    SDL_Quit();
+    lPos.x = sin(glfwGetTime()) * 5.f;
+    lPos.z = 4 + cos(glfwGetTime()) * 5.f;
+
+    useShad(main);
+    for(int oo = 0; oo < root->size; oo++)
+    {
+      gameObject obj = root->everything[oo];
+      if (obj.ID == 1)
+      {
+        obj.pos = lPos;
+        obj.pos.y -= 3;
+      }
+      char str[40];
+      sprintf(str, "objs[%i].color", oo);
+      setVec3(str, obj.color, main);
+      sprintf(str, "objs[%i].pos", oo);
+      setVec3(str, obj.pos, main);
+      sprintf(str, "objs[%i].ID", oo);
+      setInt(str, obj.ID, main);
+      sprintf(str, "objs[%i].SDF", oo);
+      setInt(str, obj.SDF, main);
+      sprintf(str, "objs[%i].mat.Simplex", oo);
+      setInt(str, obj.mat.Simplex, main);
+      sprintf(str, "objs[%i].mat.raytraced", oo);
+      setInt(str, obj.mat.raytraced, main);
+    }
+
+    setVec3("lightPos", lPos, main);
+    setVec3("camPosition", cameraPos, main);
+
+    setFloat("maximum", i, main);
+    setFloat("mousex", yaw, main);
+    setFloat("mousey", pitch, main);
+
+    setFloat("iResolution.x", mode->width, main);
+    setFloat("iResolution.y", mode->height, main);
+    setVec3("Color", Vec3(1.f, 1.f, 1.f), main);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, uTexture);
+    glDispatchCompute((unsigned int)mode->width/8, (unsigned int)mode->height/8, 1);
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+    useShad(raytrac);
+    for(int oo = 0; oo < root->size; oo++)
+    {
+      gameObject obj = root->everything[oo];
+      if (obj.ID == 1)
+      {
+        obj.pos = lPos;
+        obj.pos.y -= 3;
+      }
+      char str[40];
+      sprintf(str, "objs[%i].color", oo);
+      setVec3(str, obj.color, raytrac);
+      sprintf(str, "objs[%i].pos", oo);
+      setVec3(str, obj.pos, raytrac);
+      sprintf(str, "objs[%i].ID", oo);
+      setInt(str, obj.ID, raytrac);
+      sprintf(str, "objs[%i].SDF", oo);
+      setInt(str, obj.SDF, raytrac);
+      sprintf(str, "objs[%i].mat.Simplex", oo);
+      setInt(str, obj.mat.Simplex, raytrac);
+      sprintf(str, "objs[%i].mat.raytraced", oo);
+      setInt(str, obj.mat.raytraced, raytrac);
+    }
+
+    setVec3("lightPos", lPos, raytrac);
+    setVec3("camPosition", cameraPos, raytrac);
+
+    setFloat("maximum", i, raytrac);
+    setFloat("mousex", yaw, raytrac);
+    setFloat("mousey", pitch, raytrac);
+
+    setFloat("iResolution.x", mode->width, raytrac);
+    setFloat("iResolution.y", mode->height, raytrac);
+    setVec3("Color", Vec3(1.f, 1.f, 1.f), raytrac);
+
+    glBindTexture(GL_TEXTURE_2D, uTexture);
+    glDispatchCompute((unsigned int)mode->width/8, (unsigned int)mode->height/8, 1);
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, uTexture);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 0, mode->width, mode->height, 0, 0, mode->width, mode->height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+    glfwSwapInterval(1);
+    glfwSwapBuffers(game);
+    //printf("%f\n", deltaT);
+  }
+
+    glfwTerminate();
 }

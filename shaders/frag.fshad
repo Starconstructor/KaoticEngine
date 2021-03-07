@@ -5,7 +5,7 @@ uniform vec3 lightPos, camPosition;
 uniform float maximum;
 uniform float mousex, mousey;
 
-#define SIZE 4
+#define SIZE 5
 #define MAXDIST 1000
 
 vec3 normie;

@@ -4,6 +4,7 @@
 typedef struct
 {
   int Simplex;
+  int raytraced;
 } Material;
 
 typedef struct

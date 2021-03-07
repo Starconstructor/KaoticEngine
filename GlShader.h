@@ -31,70 +31,7 @@
     }
   }
 
-  void Shader(const char* vPath, const char* fPath, const char* mods) {
-    //finding shaders and converting the code
-    FILE *vShad;
-    FILE *fShad;
-
-    vShad = fopen(vPath, "rw");
-    fShad = fopen(fPath, "rw");
-
-    /*fseek(fShad, 0, SEEK_END);
-    long fLenx = ftell(fShad);
-    char* test = (char*)malloc(fLenx + 1);
-    fseek(fShad, 142, SEEK_SET);
-    fprintf(fShad, "%s\n", mods);*/
-
-    fseek(vShad, 0, SEEK_END);
-    fseek(fShad, 0, SEEK_END);
-    long vLen = ftell(vShad);
-    long fLen = ftell(fShad);
-    fseek(vShad, 0, SEEK_SET);
-    fseek(fShad, 0, SEEK_SET);
-
-    char* vShadCode = (char*)malloc(vLen + 1);
-    char* fShadCode = (char*)malloc(fLen + 1);
-
-    fread(vShadCode, 1, vLen, vShad);
-    fread(fShadCode, 1, fLen, fShad);
-    fclose(vShad);
-    fclose(fShad);
-
-    //compiling shaders
-    unsigned int vertex, frag;
-    int yeet;
-
-    vShadCode[vLen] = 0;
-    fShadCode[fLen] = 0;
-
-    vertex = glCreateShader(GL_VERTEX_SHADER);
-    const char* vCode = vShadCode;
-    glShaderSource(vertex, 1, &vCode, NULL);
-    glCompileShader(vertex);
-    glGetShaderiv(vertex, GL_COMPILE_STATUS, &yeet);
-    checkCompileErrors(vertex, "VERTEX");
-
-    frag = glCreateShader(GL_FRAGMENT_SHADER);
-    const char* fCode = fShadCode;
-    glShaderSource(frag, 1, &fCode, NULL);
-    glCompileShader(frag);
-    checkCompileErrors(frag, "FRAGMENT");
-
-    //linking shaders and setting up shader program
-    ID = glCreateProgram();
-    glAttachShader(ID, vertex);
-    glAttachShader(ID, frag);
-    glLinkProgram(ID);
-    checkCompileErrors(ID, "PROGRAM");
-
-    glDeleteShader(vertex);
-    glDeleteShader(frag);
-    free(vShadCode);
-    free(fShadCode);
-    glUseProgram(ID);
-  }
-
-void cShader(const char* Path, const char* mods)
+unsigned int cShader(const char* Path, const char* mods)
 {
   //finding shaders and converting the code
   FILE *Shad;
@@ -153,22 +90,27 @@ void cShader(const char* Path, const char* mods)
   glDeleteShader(comp);
   free(ShadCode);
   glUseProgram(ID);
+  return ID;
 }
 
-void setInt(const char* name, int value)
+void useShad(unsigned int id)
 {
-  glUniform1i(glGetUniformLocation(ID, name), value);
+  glUseProgram(id);
 }
-void setFloat(const char* name, float value)
+void setInt(const char* name, int value, unsigned int id)
 {
-  glUniform1f(glGetUniformLocation(ID, name), value);
+  glUniform1i(glGetUniformLocation(id, name), value);
+}
+void setFloat(const char* name, float value, unsigned int id)
+{
+  glUniform1f(glGetUniformLocation(id, name), value);
 }
 /*void setMat4(const char* name, glm::mat4 gorg) {
   glUniformMatrix4fv(glGetUniformLocation(ID, name), 1, GL_FALSE, glm::value_ptr(gorg));
 }
 */
-void setVec3(const char* name, vec3 value)
+void setVec3(const char* name, vec3 value, unsigned int id)
 {
-  glUniform3f(glGetUniformLocation(ID, name), value.x, value.y, value.z);
+  glUniform3f(glGetUniformLocation(id, name), value.x, value.y, value.z);
 }
 #endif

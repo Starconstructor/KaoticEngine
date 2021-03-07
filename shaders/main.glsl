@@ -1,5 +1,5 @@
 #version 460 core
-layout(local_size_x = 1, local_size_y = 1) in;
+layout(local_size_x = 8, local_size_y = 8) in;
 layout(rgba32f, binding = 0) uniform image2D uTexture;
 
 ivec2 FragCoord = ivec2(gl_GlobalInvocationID.xy);
@@ -10,7 +10,7 @@ uniform vec3 lightPos, camPosition;
 uniform float maximum;
 uniform float mousex, mousey;
 
-#define SIZE 4
+#define SIZE 5
 #define MAXDIST 1000
 
 vec3 normie;
@@ -24,6 +24,7 @@ int scened = 0;
 struct material
 {
   int Simplex;
+  int raytraced;
 };
 
 struct gameObject
@@ -192,6 +193,7 @@ float SDF(gameObject thing, vec3 pos)
     return cubSDF(pos);
   }
 }
+int bol = 0;
 
 float sceneDistance(vec3 smol)
 {
@@ -199,7 +201,7 @@ float sceneDistance(vec3 smol)
   float dist;
   for (int i = 0; i < SIZE; i++)
   {
-    dist = SDF(objs[i], smol - objs[i].pos);
+    if (objs[i].mat.raytraced == 0) dist = SDF(objs[i], smol - objs[i].pos);
     if (ultrasmol > dist)
     {
       ultrasmol = dist;
@@ -244,7 +246,6 @@ vec3 NormalGrab() {
 vec3 lighting(vec3 rayOrigin, float dist) {
   normie = NormalGrab();
   vec3 lPos = lightPos;
-  lPos.xz += vec2(sin(maximum) * 8, cos(maximum) * 4);
   vec3 lightDeg = normalize(lPos - fragPos);
   float diff = clamp(dot(normie, lightDeg), 0.0, 1.0);
 
@@ -272,7 +273,7 @@ vec3 lighting(vec3 rayOrigin, float dist) {
 
   float spec = final;
 
-  vec3 lightDir = lPos - fragPos;
+  vec3 lightDir = fragPos - lPos;
 
   float shadowCast = Raymarch(fragPos + normie * 0.001, lightDeg);
   if (shadowCast < length(lightDir))
@@ -289,6 +290,7 @@ vec3 lighting(vec3 rayOrigin, float dist) {
   if (dist > MAXDIST)
   {
     ultimate = vec3(0.0);
+    bol = 1;
   }
   return ultimate;
 }
@@ -326,5 +328,6 @@ void main() {
   //color = vec4(normie, 1.0);
   color = vec4(final, 1.0);
 
-  imageStore(uTexture, FragCoord, color);
+  if (bol == 0) imageStore(uTexture, FragCoord, color);
+  else imageStore(uTexture, FragCoord, vec4(1.0, 0.0, 1.0, 1.0));
 }
