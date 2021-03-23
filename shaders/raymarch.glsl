@@ -1,4 +1,4 @@
-#version 460 core
+#version 430 core
 layout(local_size_x = 8, local_size_y = 8) in;
 layout(rgba32f, binding = 0) uniform image2D uTexture;
 
@@ -11,19 +11,19 @@ uniform float maximum;
 uniform float mousex, mousey;
 
 #define SIZE 5
-#define MAXDIST 1000
+#define MAXDIST 100
 
 vec3 normie;
 int id;
 int tID;
-vec3 diffcolor;
+vec3 albedo;
 vec3 fragPos;
+float roughness;
 
 int scened = 0;
 
 struct material
 {
-  int Simplex;
   int raytraced;
 };
 
@@ -43,74 +43,7 @@ uniform struct {
   float y;
 } iResolution;
 
-vec3 mod289(vec3 x) {
-  return x - floor(x * (1.0 / 289.0)) * 289.0;
-}
-
-vec2 mod289(vec2 x) {
-  return x - floor(x * (1.0 / 289.0)) * 289.0;
-}
-
-vec3 permute(vec3 x) {
-  return mod289(((x*34.0)+1.0)*x);
-}
-
-float snoise(vec2 v) {
-  const vec4 C = vec4(0.211324865405187,  // (3.0-sqrt(3.0))/6.0
-                      0.366025403784439,  // 0.5*(sqrt(3.0)-1.0)
-                     -0.577350269189626,  // -1.0 + 2.0 * C.x
-                      0.024390243902439); // 1.0 / 41.0
-// First corner
-  vec2 i  = floor(v + dot(v, C.yy) );
-  vec2 x0 = v -   i + dot(i, C.xx);
-
-// Other corners
-  vec2 i1;
-  i1.x = step( x0.y, x0.x ); // x0.x > x0.y ? 1.0 : 0.0
-  i1.y = 1.0 - i1.x;
-  //i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
-  // x0 = x0 - 0.0 + 0.0 * C.xx ;
-  // x1 = x0 - i1 + 1.0 * C.xx ;
-  // x2 = x0 - 1.0 + 2.0 * C.xx ;
-  vec4 x12 = x0.xyxy + C.xxzz;
-  x12.xy -= i1;
-
-// Permutations
-  i = mod289(i); // Avoid truncation effects in permutation
-  vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
-		+ i.x + vec3(0.0, i1.x, 1.0 ));
-
-  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
-  m = m*m ;
-  m = m*m ;
-
-// Gradients: 41 points uniformly over a line, mapped onto a diamond.
-// The ring size 17*17 = 289 is close to a multiple of 41 (41*7 = 287)
-
-  vec3 x = 2.0 * fract(p * C.www) - 1.0;
-  vec3 h = abs(x) - 0.5;
-  vec3 ox = floor(x + 0.5);
-  vec3 a0 = x - ox;
-
-// Normalise gradients implicitly by scaling m
-// Approximation of: m *= inversesqrt( a0*a0 + h*h );
-  m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
-
-// Compute final noise value at P
-  vec3 g;
-  g.x  = a0.x  * x0.x  + h.x  * x0.y;
-  g.yz = a0.yz * x12.xz + h.yz * x12.yw;
-  return 130.0 * dot(m, g);
-}
-
-void matGrab(int i)
-{
-  float val = snoise(fragPos.xy * 5) * snoise(fragPos.yz * 5);
-  if (objs[i].mat.Simplex == 1) diffcolor *= val;
-  else diffcolor *= 1.f;
-}
-
-float bunny(vec3 p, vec3 col) {
+float bunny(vec3 p) {
     if (length(p) > 1.) {
         return (length(p)-0.9);
     }
@@ -158,14 +91,13 @@ float bunny(vec3 p, vec3 col) {
         mat4(-.10,.52,.80,-.65,.40,-.75,.47,1.56,.03,.05,.08,.31,-.03,.22,-1.63,.07)*f12+
         mat4(-.18,-.07,-1.22,.48,-.01,.56,.07,.15,.24,.25,-.09,-.54,.23,-.08,.20,.36)*f13+
         vec4(-1.11,-4.28,1.02,-.23))/1.4+f13;
-    diffcolor = col;
     return dot(f00,vec4(.09,.12,-.07,-.03))+dot(f01,vec4(-.04,.07,-.08,.05))+
         dot(f02,vec4(-.01,.06,-.02,.07))+dot(f03,vec4(-.05,.07,.03,.04))-0.16;
 }
 
-float cubSDF (vec3 pos)
+float cubSDF (vec3 p)
 {
-  return max(abs(pos.x), max(abs(pos.y), abs(pos.z))) - 0.5;
+  return max(abs(p.x), max(abs(p.y), abs(p.z))) - 0.5;
 }
 
 float spherSDF (vec3 p)
@@ -176,6 +108,11 @@ float spherSDF (vec3 p)
 float floorSDF (vec3 p)
 {
   return p.y;
+}
+
+float fractal (vec3 p)
+{
+  return 0.0;
 }
 
 float SDF(gameObject thing, vec3 pos)
@@ -192,8 +129,15 @@ float SDF(gameObject thing, vec3 pos)
   {
     return cubSDF(pos);
   }
+  if (thing.SDF == 3)
+  {
+    return bunny(pos);
+  }
+  if (thing.SDF == 4)
+  {
+    return fractal(pos);
+  }
 }
-int bol = 0;
 
 float sceneDistance(vec3 smol)
 {
@@ -201,7 +145,7 @@ float sceneDistance(vec3 smol)
   float dist;
   for (int i = 0; i < SIZE; i++)
   {
-    if (objs[i].mat.raytraced == 0) dist = SDF(objs[i], smol - objs[i].pos);
+    dist = SDF(objs[i], smol - objs[i].pos);
     if (ultrasmol > dist)
     {
       ultrasmol = dist;
@@ -210,9 +154,13 @@ float sceneDistance(vec3 smol)
   return ultrasmol;
 }
 
+void NormalGrab() {
+  vec2 e = vec2(1.0, -1.0) * 0.0005;
+  normie = normalize(vec3(e.xyy * sceneDistance(fragPos + e.xyy) + e.yyx * sceneDistance(fragPos + e.yyx) + e.yxy * sceneDistance(fragPos + e.yxy) + e.xxx * sceneDistance(fragPos + e.xxx)));
+}
 float Raymarch(vec3 origin, vec3 rayDir)
 {
-  float distance = 0.0001;
+  float distance = 0.01;
   vec3 smallest;
   float sceneDist;
   for (int i = 0; i < maximum; i++)
@@ -224,78 +172,12 @@ float Raymarch(vec3 origin, vec3 rayDir)
     //rayDir = reflect(pathdir, normalize(nrand3(matprops.w, surfnormal)));
   }
   fragPos = origin + rayDir * distance;
-
-  for (int i = 0; i < SIZE; i++)
-  {
-    if(sceneDist == SDF(objs[i], smallest - objs[i].pos) && scened == 0)
-    {
-      diffcolor = objs[i].color;
-      matGrab(i);
-    }
-  }
   return distance;
 }
 
-vec3 NormalGrab() {
-  vec2 e = vec2(1.0, -1.0) * 0.0005;
-  vec3 normie = vec3(e.xyy * sceneDistance(fragPos + e.xyy) + e.yyx * sceneDistance(fragPos + e.yyx) + e.yxy * sceneDistance(fragPos + e.yxy) + e.xxx * sceneDistance(fragPos + e.xxx));
 
-  return normalize(normie);
-}
-
-vec3 lighting(vec3 rayOrigin, float dist) {
-  normie = NormalGrab();
-  vec3 lPos = lightPos;
-  vec3 lightDeg = normalize(lPos - fragPos);
-  float diff = clamp(dot(normie, lightDeg), 0.0, 1.0);
-
-  vec3 camVec = normalize(rayOrigin - fragPos);
-  vec3 halfVec = (lightDeg + camVec) / length(lightDeg + camVec);
-
-  float roughness = 0.01;
-  float alpha = acos(dot(normie, halfVec));
-  float cosi = float(pow(cos(alpha), 2.0));
-  float tang = (1 - cosi) / (cosi * roughness);
-  float Beckmann = float(exp(-tang) / (3.14 * roughness * pow(cosi, 2.0)));
-
-  float Schlick = 0.13 + (1.0 - 0.13) * pow(1.0 - cos(dot(halfVec, camVec)), 5.0);
-
-  float viewNorm = dot(camVec, normie);
-
-  float eq1 = (2 * dot(halfVec, normie) * viewNorm) / dot(camVec, halfVec);
-  float eq2 = (2 * dot(halfVec, normie) * dot(lightDeg, normie)) / dot(camVec, halfVec);
-  float geo = min(min(1, eq1), eq2);
-
-  float topHalf = Beckmann * Schlick * geo;
-  float bottomHalf = float(3.14 * viewNorm * dot(normie, lightDeg));
-
-  float final = topHalf / bottomHalf;
-
-  float spec = final;
-
-  vec3 lightDir = fragPos - lPos;
-
-  float shadowCast = Raymarch(fragPos + normie * 0.001, lightDeg);
-  if (shadowCast < length(lightDir))
-  {
-    diff *= 0.1;
-    spec = 0.0;
-  }
-
-  vec3 diffuse = diff * diffcolor;
-
-  vec3 specular = spec * Color;
-
-  vec3 ultimate = (diffuse + specular);
-  if (dist > MAXDIST)
-  {
-    ultimate = vec3(0.0);
-    bol = 1;
-  }
-  return ultimate;
-}
-
-void main() {
+void main()
+{
   vec2 rez = vec2(iResolution.x, iResolution.y);
   vec2 uv = (FragCoord.xy - 0.5 * rez.xy) / rez.x;
 
@@ -321,13 +203,9 @@ void main() {
   rayDir *= yRot;
 
   float raymarched = Raymarch(rayOrigin, rayDir);
-  scened = 1;
-  vec3 final = lighting(rayOrigin, raymarched);
 
-  //color = vec4(fragPos, 1.0);
-  //color = vec4(normie, 1.0);
-  color = vec4(final, 1.0);
+  color = vec4(fragPos, 1.0);
 
-  if (bol == 0) imageStore(uTexture, FragCoord, color);
-  else imageStore(uTexture, FragCoord, vec4(1.0, 0.0, 1.0, 1.0));
+  if (raymarched < MAXDIST) imageStore(uTexture, FragCoord, color);
+  else imageStore(uTexture, FragCoord, vec4(100.0, 100.0, 100.0, 1.0));
 }

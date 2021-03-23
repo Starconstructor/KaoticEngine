@@ -5,6 +5,7 @@ typedef struct
 {
   int Simplex;
   int raytraced;
+  float roughness;
 } Material;
 
 typedef struct

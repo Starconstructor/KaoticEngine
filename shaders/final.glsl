@@ -1,24 +1,32 @@
-#version 460 core
-out vec4 color;
+#version 430 core
+layout(local_size_x = 8, local_size_y = 8) in;
+layout(rgba32f, binding = 0) uniform image2D uTexture;
+
+ivec2 FragCoord = ivec2(gl_GlobalInvocationID.xy);
+
+vec4 color;
 uniform vec3 Color;
 uniform vec3 lightPos, camPosition;
 uniform float maximum;
 uniform float mousex, mousey;
 
 #define SIZE 5
-#define MAXDIST 1000
+#define MAXDIST 100
 
 vec3 normie;
 int id;
 int tID;
-vec3 diffcolor;
+vec3 albedo;
 vec3 fragPos;
+float roughness;
 
 int scened = 0;
 
 struct material
 {
   int Simplex;
+  int raytraced;
+  float roughness;
 };
 
 struct gameObject
@@ -49,6 +57,10 @@ vec3 permute(vec3 x) {
   return mod289(((x*34.0)+1.0)*x);
 }
 
+vec2 random2( vec2 p ) {
+    return fract(sin(vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3))))*43758.5453);
+}
+
 float snoise(vec2 v) {
   const vec4 C = vec4(0.211324865405187,  // (3.0-sqrt(3.0))/6.0
                       0.366025403784439,  // 0.5*(sqrt(3.0)-1.0)
@@ -62,10 +74,7 @@ float snoise(vec2 v) {
   vec2 i1;
   i1.x = step( x0.y, x0.x ); // x0.x > x0.y ? 1.0 : 0.0
   i1.y = 1.0 - i1.x;
-  //i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
-  // x0 = x0 - 0.0 + 0.0 * C.xx ;
-  // x1 = x0 - i1 + 1.0 * C.xx ;
-  // x2 = x0 - 1.0 + 2.0 * C.xx ;
+  i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
   vec4 x12 = x0.xyxy + C.xxzz;
   x12.xy -= i1;
 
@@ -95,13 +104,6 @@ float snoise(vec2 v) {
   g.x  = a0.x  * x0.x  + h.x  * x0.y;
   g.yz = a0.yz * x12.xz + h.yz * x12.yw;
   return 130.0 * dot(m, g);
-}
-
-void matGrab(int i)
-{
-  float val = snoise(fragPos.xy * 5) * snoise(fragPos.yz * 5);
-  if (objs[i].mat.Simplex == 1) diffcolor *= val;
-  else diffcolor *= 1.f;
 }
 
 float bunny(vec3 p) {
@@ -156,9 +158,9 @@ float bunny(vec3 p) {
         dot(f02,vec4(-.01,.06,-.02,.07))+dot(f03,vec4(-.05,.07,.03,.04))-0.16;
 }
 
-float cubSDF (vec3 pos)
+float cubSDF (vec3 p)
 {
-  return max(abs(pos.x), max(abs(pos.y), abs(pos.z))) - 0.5;
+  return max(abs(p.x), max(abs(p.y), abs(p.z))) - 0.5;
 }
 
 float spherSDF (vec3 p)
@@ -169,6 +171,11 @@ float spherSDF (vec3 p)
 float floorSDF (vec3 p)
 {
   return p.y;
+}
+
+float fractal (vec3 p)
+{
+  return 0.0;
 }
 
 float SDF(gameObject thing, vec3 pos)
@@ -189,6 +196,10 @@ float SDF(gameObject thing, vec3 pos)
   {
     return bunny(pos);
   }
+  if (thing.SDF == 4)
+  {
+    return fractal(pos);
+  }
 }
 
 float sceneDistance(vec3 smol)
@@ -206,6 +217,11 @@ float sceneDistance(vec3 smol)
   return ultrasmol;
 }
 
+void NormalGrab() {
+  vec2 e = vec2(1.0, -1.0) * 0.0005;
+  normie = normalize(vec3(e.xyy * sceneDistance(fragPos + e.xyy) + e.yyx * sceneDistance(fragPos + e.yyx) + e.yxy * sceneDistance(fragPos + e.yxy) + e.xxx * sceneDistance(fragPos + e.xxx)));
+}
+
 float Raymarch(vec3 origin, vec3 rayDir)
 {
   float distance = 0.0001;
@@ -219,36 +235,23 @@ float Raymarch(vec3 origin, vec3 rayDir)
     if (distance > MAXDIST || distance < 0.0001) break;
     //rayDir = reflect(pathdir, normalize(nrand3(matprops.w, surfnormal)));
   }
-  fragPos = origin + rayDir * distance;
-
-  for (int i = 0; i < SIZE; i++)
-  {
-    if(sceneDist == SDF(objs[i], smallest - objs[i].pos) && scened == 0)
-    {
-      diffcolor = objs[i].color;
-      matGrab(i);
-    }
-  }
   return distance;
 }
 
-vec3 NormalGrab() {
-  vec2 e = vec2(1.0, -1.0) * 0.0005;
-  vec3 normie = vec3(e.xyy * sceneDistance(fragPos + e.xyy) + e.yyx * sceneDistance(fragPos + e.yyx) + e.yxy * sceneDistance(fragPos + e.yxy) + e.xxx * sceneDistance(fragPos + e.xxx));
 
-  return normalize(normie);
+void matGrab(int i)
+{
+  albedo = objs[i].color;
+  NormalGrab();
+  float val = snoise(normie.xy * 5);
+  if (objs[i].mat.Simplex == 1) albedo *= val;
+  else albedo *= 1.f;
+  roughness = objs[i].mat.roughness;
+  scened = 1;
 }
 
-vec3 lighting(vec3 rayOrigin, float dist) {
-  normie = NormalGrab();
-  vec3 lPos = lightPos;
-  vec3 lightDeg = normalize(lPos - fragPos);
-  float diff = clamp(dot(normie, lightDeg), 0.0, 1.0);
-
-  vec3 camVec = normalize(rayOrigin - fragPos);
-  vec3 halfVec = (lightDeg + camVec) / length(lightDeg + camVec);
-
-  float roughness = 0.01;
+float CookTorrance(vec3 camVec, vec3 lightDeg, vec3 halfVec)
+{
   float alpha = acos(dot(normie, halfVec));
   float cosi = float(pow(cos(alpha), 2.0));
   float tang = (1 - cosi) / (cosi * roughness);
@@ -264,62 +267,50 @@ vec3 lighting(vec3 rayOrigin, float dist) {
 
   float topHalf = Beckmann * Schlick * geo;
   float bottomHalf = float(3.14 * viewNorm * dot(normie, lightDeg));
+  return topHalf / bottomHalf;
+}
 
-  float final = topHalf / bottomHalf;
+vec3 lighting(vec3 rayOrigin, float dist) {
+  for (int i = 0; i < SIZE; i++)
+  {
+    if (0.001 > SDF(objs[i], fragPos - objs[i].pos) && scened == 0) matGrab(i);
+  }
+  vec3 lPos = lightPos;
+  vec3 lightDeg = normalize(lPos - fragPos);
 
-  float spec = final;
+  float diff = clamp(dot(normie, lightDeg), 0.0, 1.0);
 
-  vec3 lightDir = lPos - fragPos;
+  vec3 camVec = normalize(rayOrigin - fragPos);
+  vec3 halfVec = (lightDeg + camVec) / length(lightDeg + camVec);
+
+  float spec = CookTorrance(camVec, lightDeg, halfVec);
+
+  vec3 lightDir = fragPos - lPos;
 
   float shadowCast = Raymarch(fragPos + normie * 0.001, lightDeg);
   if (shadowCast < length(lightDir))
   {
-    diff *= 0.1;
+    diff *= 0.3;
     spec = 0.0;
   }
 
-  vec3 diffuse = diff * diffcolor;
+  vec3 diffuse = diff * albedo;
 
   vec3 specular = spec * Color;
 
   vec3 ultimate = (diffuse + specular);
   if (dist > MAXDIST)
   {
-    ultimate = vec3(0.0);
+    ultimate = vec3(1.0, 0.0, 1.0);
   }
   return ultimate;
 }
 
-void main() {
-  vec2 rez = vec2(iResolution.x, iResolution.y);
-  vec2 uv = (gl_FragCoord.xy - 0.5 * rez.xy) / rez.x;
-
-  vec3 rayOrigin = camPosition;
-  vec3 rayDir = vec3(uv.x, uv.y, 1.0);
-
-  mat3 xRot;
-  xRot[0] = vec3(1, 0, 0);
-  xRot[1] = vec3(0, cos(mousey), -sin(mousey));
-  xRot[2] = vec3(0, sin(mousey), cos(mousey));
-
-  mat3 yRot;
-  yRot[0] = vec3(cos(mousex), 0, sin(mousex));
-  yRot[1] = vec3(0, 1, 0);
-  yRot[2] = vec3(-sin(mousex), 0, cos(mousex));
-
-  mat3 zRot;
-  zRot[0] = vec3(cos(mousey), -sin(mousey), 0);
-  zRot[1] = vec3(sin(mousey), cos(mousey), 0);
-  zRot[2] = vec3(0, 0, 1);
-
-  rayDir *= xRot;
-  rayDir *= yRot;
-
-  float raymarched = Raymarch(rayOrigin, rayDir);
-  scened = 1;
-  vec3 final = lighting(rayOrigin, raymarched);
-
-  //color = vec4(fragPos, 1.0);
-  //color = vec4(normie, 1.0);
+void main()
+{
+  vec3 cum = imageLoad(uTexture, FragCoord).rgb;
+  fragPos = cum;
+  vec3 final = lighting(camPosition, length(fragPos - camPosition));
   color = vec4(final, 1.0);
+  imageStore(uTexture, FragCoord, color);
 }

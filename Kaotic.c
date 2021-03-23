@@ -77,49 +77,53 @@ int main() {
   glfwInit();
   //sets up window//camera data
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
   GLFWwindow* game = glfwCreateWindow(mode->width, mode->height, "LearnOpenGL", glfwGetPrimaryMonitor(), NULL);
-  glfwSetInputMode(game, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwMakeContextCurrent(game);
   if (!game)
   {
     printf("ERROR: Window failed to initialize.\n");
     glfwTerminate();
-    exit(1);
+    return -1;
   }
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
   {
     printf("ERROR: GLAD failed to load.\n");
     glfwTerminate();
-    exit(1);
+    return -1;
   }
+  glfwSetInputMode(game, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwMakeContextCurrent(game);
   glfwSetFramebufferSizeCallback(game, framebuffer_size_callback);
   glfwSetCursorPosCallback(game, mouse);
 
-    float lastFrame = 0.0f;
+  float lastFrame = 0.0f;
 
-    GLuint uTexture;
-    glGenTextures(1, &uTexture);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, uTexture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, mode->width, mode->height, 0, GL_RGBA, GL_FLOAT, NULL);
-    glBindImageTexture(0, uTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+  GLuint uTexture;
+  glGenTextures(1, &uTexture);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, uTexture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, mode->width, mode->height, 0, GL_RGBA, GL_FLOAT, NULL);
+  glBindImageTexture(0, uTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 
-    unsigned int main = cShader("shaders/main.glsl", "");
+    unsigned int raymarched = cShader("shaders/raymarch.glsl", "");
     unsigned int raytrac = cShader("shaders/raytrace.glsl", "");
+    unsigned int final = cShader("shaders/final.glsl", "");
 
-    useShad(main);
-    setInt("uTexture", 0, main);
+    useShad(raymarched);
+    setInt("uTexture", 0, raymarched);
     useShad(raytrac);
     setInt("uTexture", 0, raytrac);
+    useShad(final);
+    setInt("uTexture", 0, final);
 
-    int i = 100;
+    int i = 200;
     float x = 0.0f;
     float z = 0.0f;
     vec3 lPos = Vec3(0.f, 4.f, 3.f);
@@ -132,16 +136,24 @@ int main() {
     int w = 1, a = 1, s = 1, d = 1, k = 1, l = 1, rise = 1;
 
     gameObject ob;
+    Material norm;
+    Material ray;
+    norm.Simplex = 0;
+    norm.raytraced = 0;
+    norm.roughness = 0.01f;
+    ray.Simplex = 1;
+    ray.raytraced = 1;
+    ray.roughness = 0.01f;
     ob.color = Vec3(1.f, 1.f, 1.f);
     ob.SDF = 0;
-    ob.mat.Simplex = 0;
-    ob.mat.raytraced = 0;
+    ob.mat = norm;
     ob.pos = Vec3(0.f, 0.f, 0.f);
     if (push_back(&root, ob)) return 1;
     else printf("Object created! ID:%i\n", root->size - 1);
 
     ob.color = Vec3(1.f, 1.f, 1.f);
     ob.SDF = 1;
+    ob.mat = ray;
     ob.mat.Simplex = 1;
     ob.pos = lPos;
     if (push_back(&root, ob)) return 1;
@@ -149,23 +161,21 @@ int main() {
 
     ob.color = Vec3(0.f, 1.f, 1.f);
     ob.SDF = 1;
-    ob.mat.Simplex = 1;
-    ob.mat.raytraced = 1;
+    ob.mat = ray;
     ob.pos = Vec3(0.f, 1.f, 6.f);
     if (push_back(&root, ob)) return 1;
     else printf("Object created! ID:%i\n", root->size - 1);
 
     ob.color = Vec3(1.f, 0.f, 0.f);
     ob.SDF = 2;
-    ob.mat.Simplex = 0;
-    ob.mat.raytraced = 0;
+    ob.mat = norm;
     ob.pos = Vec3(2.f, 1.f, 6.f);
     if (push_back(&root, ob)) return 1;
     else printf("Object created! ID:%i\n", root->size - 1);
 
     ob.color = Vec3(1.f, 0.f, 1.f);
     ob.SDF = 2;
-    ob.mat.Simplex = 0;
+    ob.mat = norm;
     ob.pos = Vec3(-2.f, 1.f, 6.f);
     if (push_back(&root, ob)) return 1;
     else printf("Object created! ID:%i\n", root->size - 1);
@@ -230,7 +240,7 @@ int main() {
     lPos.x = sin(glfwGetTime()) * 5.f;
     lPos.z = 4 + cos(glfwGetTime()) * 5.f;
 
-    useShad(main);
+    useShad(raymarched);
     for(int oo = 0; oo < root->size; oo++)
     {
       gameObject obj = root->everything[oo];
@@ -241,29 +251,27 @@ int main() {
       }
       char str[40];
       sprintf(str, "objs[%i].color", oo);
-      setVec3(str, obj.color, main);
+      setVec3(str, obj.color, raymarched);
       sprintf(str, "objs[%i].pos", oo);
-      setVec3(str, obj.pos, main);
+      setVec3(str, obj.pos, raymarched);
       sprintf(str, "objs[%i].ID", oo);
-      setInt(str, obj.ID, main);
+      setInt(str, obj.ID, raymarched);
       sprintf(str, "objs[%i].SDF", oo);
-      setInt(str, obj.SDF, main);
-      sprintf(str, "objs[%i].mat.Simplex", oo);
-      setInt(str, obj.mat.Simplex, main);
+      setInt(str, obj.SDF, raymarched);
       sprintf(str, "objs[%i].mat.raytraced", oo);
-      setInt(str, obj.mat.raytraced, main);
+      setInt(str, obj.mat.raytraced, raymarched);
     }
 
-    setVec3("lightPos", lPos, main);
-    setVec3("camPosition", cameraPos, main);
+    setVec3("lightPos", lPos, raymarched);
+    setVec3("camPosition", cameraPos, raymarched);
 
-    setFloat("maximum", i, main);
-    setFloat("mousex", yaw, main);
-    setFloat("mousey", pitch, main);
+    setFloat("maximum", i, raymarched);
+    setFloat("mousex", yaw, raymarched);
+    setFloat("mousey", pitch, raymarched);
 
-    setFloat("iResolution.x", mode->width, main);
-    setFloat("iResolution.y", mode->height, main);
-    setVec3("Color", Vec3(1.f, 1.f, 1.f), main);
+    setFloat("iResolution.x", mode->width, raymarched);
+    setFloat("iResolution.y", mode->height, raymarched);
+    setVec3("Color", Vec3(1.f, 1.f, 1.f), raymarched);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, uTexture);
@@ -288,8 +296,6 @@ int main() {
       setInt(str, obj.ID, raytrac);
       sprintf(str, "objs[%i].SDF", oo);
       setInt(str, obj.SDF, raytrac);
-      sprintf(str, "objs[%i].mat.Simplex", oo);
-      setInt(str, obj.mat.Simplex, raytrac);
       sprintf(str, "objs[%i].mat.raytraced", oo);
       setInt(str, obj.mat.raytraced, raytrac);
     }
@@ -297,13 +303,53 @@ int main() {
     setVec3("lightPos", lPos, raytrac);
     setVec3("camPosition", cameraPos, raytrac);
 
-    setFloat("maximum", i, raytrac);
     setFloat("mousex", yaw, raytrac);
     setFloat("mousey", pitch, raytrac);
 
     setFloat("iResolution.x", mode->width, raytrac);
     setFloat("iResolution.y", mode->height, raytrac);
     setVec3("Color", Vec3(1.f, 1.f, 1.f), raytrac);
+
+    glBindTexture(GL_TEXTURE_2D, uTexture);
+    glDispatchCompute((unsigned int)mode->width/8, (unsigned int)mode->height/8, 1);
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+    useShad(final);
+    for(int oo = 0; oo < root->size; oo++)
+    {
+      gameObject obj = root->everything[oo];
+      if (obj.ID == 1)
+      {
+        obj.pos = lPos;
+        obj.pos.y -= 3;
+      }
+      char str[40];
+      sprintf(str, "objs[%i].color", oo);
+      setVec3(str, obj.color, final);
+      sprintf(str, "objs[%i].pos", oo);
+      setVec3(str, obj.pos, final);
+      sprintf(str, "objs[%i].ID", oo);
+      setInt(str, obj.ID, final);
+      sprintf(str, "objs[%i].SDF", oo);
+      setInt(str, obj.SDF, final);
+      sprintf(str, "objs[%i].mat.Simplex", oo);
+      setInt(str, obj.mat.Simplex, final);
+      sprintf(str, "objs[%i].mat.raytraced", oo);
+      setInt(str, obj.mat.raytraced, final);
+      sprintf(str, "objs[%i].mat.roughness", oo);
+      setFloat(str, obj.mat.roughness, final);
+    }
+
+    setVec3("lightPos", lPos, final);
+    setVec3("camPosition", cameraPos, final);
+
+    setFloat("maximum", i, final);
+    setFloat("mousex", yaw, final);
+    setFloat("mousey", pitch, final);
+
+    setFloat("iResolution.x", mode->width, final);
+    setFloat("iResolution.y", mode->height, final);
+    setVec3("Color", Vec3(1.f, 1.f, 1.f), final);
 
     glBindTexture(GL_TEXTURE_2D, uTexture);
     glDispatchCompute((unsigned int)mode->width/8, (unsigned int)mode->height/8, 1);
