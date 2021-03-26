@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "GlShader.h"
 #include "Overlord.h"
+#include "nappgui/inc/core/coreall.h"
 
 unsigned int vbo, array;
 
@@ -162,20 +163,20 @@ int main() {
     ob.color = Vec3(0.f, 1.f, 1.f);
     ob.SDF = 1;
     ob.mat = ray;
-    ob.pos = Vec3(0.f, 1.f, 6.f);
+    ob.pos = Vec3(0.f, 3.f, 6.f);
     if (push_back(&root, ob)) return 1;
     else printf("Object created! ID:%i\n", root->size - 1);
 
     ob.color = Vec3(1.f, 0.f, 0.f);
     ob.SDF = 2;
-    ob.mat = norm;
+    ob.mat = ray;
     ob.pos = Vec3(2.f, 1.f, 6.f);
     if (push_back(&root, ob)) return 1;
     else printf("Object created! ID:%i\n", root->size - 1);
 
     ob.color = Vec3(1.f, 0.f, 1.f);
-    ob.SDF = 2;
-    ob.mat = norm;
+    ob.SDF = 3;
+    ob.mat = ray;
     ob.pos = Vec3(-2.f, 1.f, 6.f);
     if (push_back(&root, ob)) return 1;
     else printf("Object created! ID:%i\n", root->size - 1);

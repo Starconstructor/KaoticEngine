@@ -175,7 +175,8 @@ float floorSDF (vec3 p)
 
 float fractal (vec3 p)
 {
-  return 0.0;
+  float x = length(p) - 1 * 1;
+  return x;
 }
 
 float SDF(gameObject thing, vec3 pos)
@@ -193,10 +194,6 @@ float SDF(gameObject thing, vec3 pos)
     return cubSDF(pos);
   }
   if (thing.SDF == 3)
-  {
-    return bunny(pos);
-  }
-  if (thing.SDF == 4)
   {
     return fractal(pos);
   }
@@ -243,7 +240,7 @@ void matGrab(int i)
 {
   albedo = objs[i].color;
   NormalGrab();
-  float val = snoise(normie.xy * 5);
+  float val = snoise(fragPos.xy * 5) + snoise(fragPos.xz * 5) + snoise(fragPos.yz * 5);
   if (objs[i].mat.Simplex == 1) albedo *= val;
   else albedo *= 1.f;
   roughness = objs[i].mat.roughness;
@@ -273,7 +270,7 @@ float CookTorrance(vec3 camVec, vec3 lightDeg, vec3 halfVec)
 vec3 lighting(vec3 rayOrigin, float dist) {
   for (int i = 0; i < SIZE; i++)
   {
-    if (0.001 > SDF(objs[i], fragPos - objs[i].pos) && scened == 0) matGrab(i);
+    if (0.01 > SDF(objs[i], fragPos - objs[i].pos) && scened == 0) matGrab(i);
   }
   vec3 lPos = lightPos;
   vec3 lightDeg = normalize(lPos - fragPos);

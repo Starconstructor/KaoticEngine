@@ -44,8 +44,33 @@ uniform struct {
 
 float distance;
 
-float spher(vec3 p, vec3 rayDir)
+float cub(vec3 p1, vec3 p2, vec3 rayDir)
 {
+  vec3 p = p1 - p2;
+  float distanc = 1.0;
+  float a = dot(rayDir, rayDir);
+  float b = 2.0*dot(rayDir, p);
+  float c = max(abs(p.x), max(abs(p.y), abs(p.z))) - 0.5;
+  discriminant = b*b - 4*a*c;
+  distanc = (-b - sqrt(discriminant)) / (2.0*a);
+  return distanc;
+}
+
+float spher(vec3 p1, vec3 p2, vec3 rayDir)
+{
+  vec3 p = p1 - p2;
+  float distanc = 1.0;
+  float a = dot(rayDir, rayDir);
+  float b = 2.0*dot(rayDir, p);
+  float c = dot(p, p) - 1 * 1;
+  discriminant = b*b - 4*a*c;
+  distanc = (-b - sqrt(discriminant)) / (2.0*a);
+  return distanc;
+}
+
+float frak(vec3 p1, vec3 p2, vec3 rayDir)
+{
+  vec3 p = mod(p1, 1.0) - p2;
   float distanc = 1.0;
   float a = dot(rayDir, rayDir);
   float b = 2.0*dot(rayDir, p);
@@ -62,8 +87,9 @@ float Raytrace(vec3 origin, vec3 rayDir)
   {
     if (objs[i].mat.raytraced == 1)
     {
-      vec3 vec = origin - objs[i].pos;
-      distanc = spher(vec, rayDir);
+      if (objs[i].SDF == 1) distanc = spher(origin, objs[i].pos, rayDir);
+      if (objs[i].SDF == 2) distanc = cub(origin, objs[i].pos, rayDir);
+      if (objs[i].SDF == 3) distanc = frak(origin, objs[i].pos, rayDir);
 
       if (discriminant > 0.0)
       {
