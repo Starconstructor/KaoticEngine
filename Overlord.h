@@ -3,14 +3,15 @@
 
 typedef struct
 {
+  vec3 color;
   int Simplex;
-  int raytraced;
+  int fractal;
   float roughness;
 } Material;
 
 typedef struct
 {
-  vec3 color;
+  int active;
   vec3 pos;
   int SDF;
   float ID;

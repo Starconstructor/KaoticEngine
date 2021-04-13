@@ -1,6 +1,7 @@
 #version 430 core
-layout(local_size_x = 8, local_size_y = 8) in;
+layout(local_size_x = 32, local_size_y = 32) in;
 layout(rgba32f, binding = 0) uniform image2D uTexture;
+layout(rgba32f, binding = 1) uniform image2D xTexture;
 
 ivec2 FragCoord = ivec2(gl_GlobalInvocationID.xy);
 
@@ -16,7 +17,7 @@ uniform float mousex, mousey;
 vec3 normie;
 int id;
 int tID;
-vec3 albedo;
+vec3 albedo = vec3(1.0, 1.0, 1.0);
 vec3 fragPos;
 float roughness;
 
@@ -24,14 +25,15 @@ int scened = 0;
 
 struct material
 {
+  vec3 color;
   int Simplex;
-  int raytraced;
+  int fractal;
   float roughness;
 };
 
 struct gameObject
 {
-  vec3 color;
+  int act;
   vec3 pos;
   int SDF;
   int ID;
@@ -44,6 +46,9 @@ uniform struct {
   float x;
   float y;
 } iResolution;
+
+#define octaves 16U
+#define pi 3.14159265
 
 vec3 mod289(vec3 x) {
   return x - floor(x * (1.0 / 289.0)) * 289.0;
@@ -104,6 +109,30 @@ float snoise(vec2 v) {
   g.x  = a0.x  * x0.x  + h.x  * x0.y;
   g.yz = a0.yz * x12.xz + h.yz * x12.yw;
   return 130.0 * dot(m, g);
+}
+
+vec2 rotate(vec2 vector, float angle){
+    float s = sin(angle), c = cos(angle);
+    return vec2(vector.x*c-vector.y*s, vector.x*s+vector.y*c);
+}
+
+float circleNoise(vec2 coord){
+    return abs(dot(vec4(cos(coord), sin(coord*2.)), vec4(.25)));
+}
+
+float fbm(vec2 coord){
+    float value = 0.0;
+    float scale = 1.0;
+    float atten = 0.5;
+    vec2 offset = vec2(pi*2.0, pi*0.25);
+    for(uint i = 0U; i < octaves; i++){
+        value += snoise((coord*scale)+offset)*atten;
+        coord  = rotate(coord, pi*0.125);
+        scale *= 2.0;
+        atten *= 0.5;
+        offset = rotate(offset*2.0, pi*0.5);
+    }
+    return value;
 }
 
 float bunny(vec3 p) {
@@ -179,24 +208,28 @@ float fractal (vec3 p)
   return x;
 }
 
-float SDF(gameObject thing, vec3 pos)
+float SDF(gameObject thing, vec3 pos1, vec3 pos2)
 {
-  if (thing.SDF == 0)
+  if (thing.act == 1)
   {
-    return floorSDF(pos);
+    if (thing.SDF == 0)
+    {
+      return floorSDF(pos1 - pos2);
+    }
+    if (thing.SDF == 1)
+    {
+      return spherSDF(pos1 - pos2);
+    }
+    if (thing.SDF == 2)
+    {
+      return cubSDF(pos1 - pos2);
+    }
+    if (thing.SDF == 3)
+    {
+      return fractal(pos1 - pos2);
+    }
   }
-  if (thing.SDF == 1)
-  {
-    return spherSDF(pos);
-  }
-  if (thing.SDF == 2)
-  {
-    return cubSDF(pos);
-  }
-  if (thing.SDF == 3)
-  {
-    return fractal(pos);
-  }
+  else return MAXDIST - 0.01;
 }
 
 float sceneDistance(vec3 smol)
@@ -205,7 +238,7 @@ float sceneDistance(vec3 smol)
   float dist;
   for (int i = 0; i < SIZE; i++)
   {
-    dist = SDF(objs[i], smol - objs[i].pos);
+    dist = SDF(objs[i], smol, objs[i].pos);
     if (ultrasmol > dist)
     {
       ultrasmol = dist;
@@ -221,7 +254,7 @@ void NormalGrab() {
 
 float Raymarch(vec3 origin, vec3 rayDir)
 {
-  float distance = 0.0001;
+  float distance = 0.01;
   vec3 smallest;
   float sceneDist;
   for (int i = 0; i < maximum; i++)
@@ -229,7 +262,7 @@ float Raymarch(vec3 origin, vec3 rayDir)
     smallest = origin + rayDir * distance;
     sceneDist = sceneDistance(smallest);
     distance += sceneDist;
-    if (distance > MAXDIST || distance < 0.0001) break;
+    if (distance > MAXDIST || sceneDist < 0.01) break;
     //rayDir = reflect(pathdir, normalize(nrand3(matprops.w, surfnormal)));
   }
   return distance;
@@ -238,11 +271,14 @@ float Raymarch(vec3 origin, vec3 rayDir)
 
 void matGrab(int i)
 {
-  albedo = objs[i].color;
+  albedo *= objs[i].mat.color;
   NormalGrab();
-  float val = snoise(fragPos.xy * 5) + snoise(fragPos.xz * 5) + snoise(fragPos.yz * 5);
+  float val = snoise(normie.xy * 5) + snoise(normie.xz * 5) + snoise(normie.yz * 5) + 0.01;
+  float val2 = fbm(fragPos.xy * 5) * fbm(fragPos.xz * 5) * fbm(fragPos.yz * 5) * 10.0 + 0.01;
+
   if (objs[i].mat.Simplex == 1) albedo *= val;
-  else albedo *= 1.f;
+  if (objs[i].mat.fractal == 1) albedo *= val2;
+
   roughness = objs[i].mat.roughness;
   scened = 1;
 }
@@ -270,10 +306,13 @@ float CookTorrance(vec3 camVec, vec3 lightDeg, vec3 halfVec)
 vec3 lighting(vec3 rayOrigin, float dist) {
   for (int i = 0; i < SIZE; i++)
   {
-    if (0.01 > SDF(objs[i], fragPos - objs[i].pos) && scened == 0) matGrab(i);
+    if (0.01 > SDF(objs[i], fragPos, objs[i].pos) && scened == 0) matGrab(i);
+    else if (SDF(objs[i], fragPos, objs[i].pos) == sceneDistance(fragPos - objs[i].pos)) matGrab(i);
   }
   vec3 lPos = lightPos;
   vec3 lightDeg = normalize(lPos - fragPos);
+
+  vec3 ambient = albedo * 0.15;
 
   float diff = clamp(dot(normie, lightDeg), 0.0, 1.0);
 
@@ -284,7 +323,7 @@ vec3 lighting(vec3 rayOrigin, float dist) {
 
   vec3 lightDir = fragPos - lPos;
 
-  float shadowCast = Raymarch(fragPos + normie * 0.001, lightDeg);
+  float shadowCast = Raymarch(fragPos + normie * 0.01, lightDeg);
   if (shadowCast < length(lightDir))
   {
     diff *= 0.3;
@@ -295,19 +334,27 @@ vec3 lighting(vec3 rayOrigin, float dist) {
 
   vec3 specular = spec * Color;
 
-  vec3 ultimate = (diffuse + specular);
-  if (dist > MAXDIST)
-  {
-    ultimate = vec3(1.0, 0.0, 1.0);
-  }
+  vec3 ultimate = (ambient + diffuse + specular);
+  //vec3 ultimate = vec3(1.0, 1.0, 1.0);
   return ultimate;
 }
 
 void main()
 {
   vec3 cum = imageLoad(uTexture, FragCoord).rgb;
+  vec3 coom = imageLoad(xTexture, FragCoord).rgb;
   fragPos = cum;
   vec3 final = lighting(camPosition, length(fragPos - camPosition));
-  color = vec4(final, 1.0);
-  imageStore(uTexture, FragCoord, color);
+  final *= coom;
+
+  if (length(camPosition - fragPos) < MAXDIST)
+  {
+    color = vec4(final, 1.0);
+    imageStore(uTexture, FragCoord, color);
+  }
+  else
+  {
+    color = vec4(0.0, 0.0, 0.0, 1.0);
+    imageStore(uTexture, FragCoord, color);
+  }
 }

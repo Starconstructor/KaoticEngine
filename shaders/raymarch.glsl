@@ -1,6 +1,7 @@
 #version 430 core
-layout(local_size_x = 8, local_size_y = 8) in;
+layout(local_size_x = 32, local_size_y = 32) in;
 layout(rgba32f, binding = 0) uniform image2D uTexture;
+layout(rgba32f, binding = 1) uniform image2D xTexture;
 
 ivec2 FragCoord = ivec2(gl_GlobalInvocationID.xy);
 
@@ -21,15 +22,16 @@ vec3 fragPos;
 float roughness;
 
 int scened = 0;
+int i = 0;
 
 struct material
 {
-  int raytraced;
+  int Simplex;
 };
 
 struct gameObject
 {
-  vec3 color;
+  int act;
   vec3 pos;
   int SDF;
   int ID;
@@ -65,22 +67,26 @@ float fractal (vec3 p)
 
 float SDF(gameObject thing, vec3 pos1, vec3 pos2)
 {
-  if (thing.SDF == 0)
+  if (thing.act == 1)
   {
-    return floorSDF(pos1 - pos2);
+    if (thing.SDF == 0)
+    {
+      return floorSDF(pos1 - pos2);
+    }
+    if (thing.SDF == 1)
+    {
+      return spherSDF(pos1 - pos2);
+    }
+    if (thing.SDF == 2)
+    {
+      return cubSDF(pos1 - pos2);
+    }
+    if (thing.SDF == 3)
+    {
+      return fractal(pos1 - pos2);
+    }
   }
-  if (thing.SDF == 1)
-  {
-    return spherSDF(pos1 - pos2);
-  }
-  if (thing.SDF == 2)
-  {
-    return cubSDF(pos1 - pos2);
-  }
-  if (thing.SDF == 3)
-  {
-    return fractal(pos1 - pos2);
-  }
+  else return MAXDIST - 0.01;
 }
 
 float sceneDistance(vec3 smol)
@@ -98,25 +104,22 @@ float sceneDistance(vec3 smol)
   return ultrasmol;
 }
 
-void NormalGrab() {
-  vec2 e = vec2(1.0, -1.0) * 0.0005;
-  normie = normalize(vec3(e.xyy * sceneDistance(fragPos + e.xyy) + e.yyx * sceneDistance(fragPos + e.yyx) + e.yxy * sceneDistance(fragPos + e.yxy) + e.xxx * sceneDistance(fragPos + e.xxx)));
-}
-float Raymarch(vec3 origin, vec3 rayDir)
+vec2 Raymarch(vec3 origin, vec3 rayDir)
 {
-  float distance = 0.01;
+  float distance = 0.1;
+  float marches = 0.0;
   vec3 smallest;
   float sceneDist;
-  for (int i = 0; i < maximum; i++)
+  for (i = 0; i < maximum; i++)
   {
     smallest = origin + rayDir * distance;
     sceneDist = sceneDistance(smallest);
     distance += sceneDist;
-    if (distance > MAXDIST || distance < 0.0001) break;
-    //rayDir = reflect(pathdir, normalize(nrand3(matprops.w, surfnormal)));
+    marches = 1.0 - float(i) / (maximum - 1);
+    if (distance > MAXDIST || sceneDist < 0.01) break;
   }
   fragPos = origin + rayDir * distance;
-  return distance;
+  return vec2(sceneDist, marches);
 }
 
 
@@ -146,10 +149,16 @@ void main()
   rayDir *= xRot;
   rayDir *= yRot;
 
-  float raymarched = Raymarch(rayOrigin, rayDir);
+  vec2 raymarched = Raymarch(rayOrigin, rayDir);
 
   color = vec4(fragPos, 1.0);
+  //color = vec4(vec3(raymarched.y / 20.0), 1.0);
 
-  if (raymarched < MAXDIST) imageStore(uTexture, FragCoord, color);
-  else imageStore(uTexture, FragCoord, vec4(1000.0, 1000.0, 1000.0, 1.0));
+  if (raymarched.x < MAXDIST && i < maximum)
+  {
+    imageStore(uTexture, FragCoord, color);
+    color = vec4(vec3(raymarched.y), 1.0);
+    imageStore(xTexture, FragCoord, color);
+  }
+  else imageStore(uTexture, FragCoord, vec4(rayOrigin + rayDir * MAXDIST, 1.0));
 }
