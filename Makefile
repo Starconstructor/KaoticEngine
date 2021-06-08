@@ -1,5 +1,5 @@
 CXX = gcc
-CFLAGS = -lglfw -lGL -lX11 -lpthread -lXrandr -lXi -ldl -lm -lportaudio -O2
+CFLAGS = -lglfw -lvulkan -lX11 -lpthread -lXrandr -lXi -ldl -lm -O2
 DEPS = stb_image.h GlShader.h Overlord.h
 OBJ = Kaotic.o
 

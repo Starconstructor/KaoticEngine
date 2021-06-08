@@ -4,22 +4,6 @@
 #include <stdio.h>
 #include "GlShader.h"
 #include "Overlord.h"
-#define NK_INCLUDE_FIXED_TYPES
-#define NK_INCLUDE_STANDARD_IO
-#define NK_INCLUDE_STANDARD_VARARGS
-#define NK_INCLUDE_DEFAULT_ALLOCATOR
-#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
-#define NK_INCLUDE_FONT_BAKING
-#define NK_INCLUDE_DEFAULT_FONT
-#define NK_IMPLEMENTATION
-#define NK_GLFW_GL4_IMPLEMENTATION
-#define NK_KEYSTATE_BASED_INPUT
-#include "lib/nuklear.h"
-#include "lib/nuklear_glfw_gl4.h"
-
-unsigned int vbo, array;
-#define MAX_VERTEX_BUFFER 512 * 1024
-#define MAX_ELEMENT_BUFFER 128 * 1024
 
 //camera data
 float yaw   = 0.0f;
@@ -87,7 +71,6 @@ int main() {
   movementFront = Vec3(0.0f, 0.0f, -1.0f);
   movementRight = Vec3(-1.0f, 0.0f, 0.0f);
   cameraUp = Vec3(0.0f, 1.0f, 0.0f);
-  struct nk_context *ctx;
 
   glfwInit();
   //sets up window//camera data
@@ -109,7 +92,6 @@ int main() {
     glfwTerminate();
     return -1;
   }
-  ctx = nk_glfw3_init(game, NK_GLFW3_INSTALL_CALLBACKS, MAX_VERTEX_BUFFER, MAX_ELEMENT_BUFFER);
   glfwSetInputMode(game, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwMakeContextCurrent(game);
   glfwSetFramebufferSizeCallback(game, framebuffer_size_callback);

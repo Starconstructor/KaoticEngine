@@ -1,4 +1,4 @@
-#version 430 core
+#version 460 core
 layout(local_size_x = 32, local_size_y = 32) in;
 layout(rgba32f, binding = 0) uniform image2D uTexture;
 layout(rgba32f, binding = 1) uniform image2D xTexture;
